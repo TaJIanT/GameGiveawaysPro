@@ -1,0 +1,1 @@
+('C:\\GameGiveawaysPro\\build\\GameGiveawaysPro_debug\\PYZ-00.pyz', [])

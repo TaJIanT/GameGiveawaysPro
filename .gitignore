@@ -49,3 +49,21 @@ updater.exe
 
 # Logs
 *.log
+
+# Local backups / logs / patch scripts
+*_backup_*
+*.backup_*
+*.broken_backup_*
+run_log.txt
+run_debug.ps1
+project_inventory.txt
+cleanup_backup_*/
+_local_trash/
+
+# Local app state
+notification_history.json
+
+# Python caches
+__pycache__/
+*.pyc
+

@@ -1,8 +1,10 @@
 ﻿# -*- coding: utf-8 -*-
+
 from update_check import check_and_update
 
 import customtkinter as ctk
 import threading
+from datetime import datetime, timezone
 
 from config import THEMES, APP_TITLE
 from api import GameAPI
@@ -10,10 +12,56 @@ from header import create_header
 from tabs import create_tabs
 from cards import create_game_card
 
+from notifications import NotificationManager
+from tray_icon import TrayController
+
+
+def _parse_dt(value):
+    if not value:
+        return None
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, tz=timezone.utc)
+
+    s = str(value).strip()
+    try:
+        s2 = s.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s2)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except Exception:
+        pass
+
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
+        except Exception:
+            pass
+    return None
+
+
+def enrich_ending_flags(games, hours=24):
+    now = datetime.now(timezone.utc)
+    for g in games or []:
+        end_raw = None
+        for k in ("end_date", "endDate", "end_date_utc", "end_time", "endTime", "endtime", "expiry", "expires"):
+            if g.get(k):
+                end_raw = g.get(k)
+                break
+
+        dt = _parse_dt(end_raw)
+        if dt:
+            delta_h = (dt - now).total_seconds() / 3600.0
+            g["ends_in_hours"] = round(delta_h, 2)
+            g["ending_soon"] = (0 <= delta_h <= hours)
+        else:
+            g["ends_in_hours"] = None
+            g["ending_soon"] = False
+    return games
+
 
 class GameGiveawaysApp(ctk.CTk):
     def __init__(self):
         super().__init__()
+
         ctk.set_appearance_mode("dark")
         self.title(APP_TITLE)
         self.geometry("1800x1100")
@@ -23,21 +71,78 @@ class GameGiveawaysApp(ctk.CTk):
         self.games = {}
         self._loading = False
 
+        # уведомления (окна)
+        self.notification_manager = NotificationManager(parent=self)
+        self.first_load = True
+
+        # трей
+        self.tray = TrayController(self)
+        self.tray.start()
+
+        # крестик -> скрыть в трей
+        try:
+            self.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        except Exception:
+            pass
+
+        # UI
         self.header, self.status_label, self.refresh_btn, self.progress = create_header(
             self, self.refresh_games_async
         )
-
         self.tabview, self.tab_frames = create_tabs(self)
+
+        # автообновление каждые 30 минут
+        self._schedule_auto_refresh()
 
         self.refresh_games_async(first_start=True)
 
+    # header.py вызывает это по чекбоксу
     def on_toggle_gamerpower(self):
-        self.api.set_use_gamerpower(bool(self.gp_var.get()))
+        try:
+            self.api.set_use_gamerpower(bool(self.gp_var.get()))
+        except Exception:
+            pass
         self.refresh_games_async()
+
+    # tray_icon.py вызывает это через after
+    def show_window(self):
+        try:
+            self.deiconify()
+            self.lift()
+            self.focus_force()
+        except Exception:
+            pass
+
+    def exit_app(self):
+        try:
+            self.tray.stop()
+        except Exception:
+            pass
+        try:
+            self.destroy()
+        except Exception:
+            pass
+
+    def hide_to_tray(self):
+        try:
+            self.withdraw()
+        except Exception:
+            pass
+
+    def _schedule_auto_refresh(self):
+        try:
+            self.after(30 * 60 * 1000, self._auto_refresh_tick)
+        except Exception:
+            pass
+
+    def _auto_refresh_tick(self):
+        try:
+            self.refresh_games_async()
+        finally:
+            self._schedule_auto_refresh()
 
     def set_loading(self, value: bool):
         self._loading = value
-
         if value:
             self.status_label.configure(text="Обновляем")
             self.refresh_btn.configure(state="disabled")
@@ -61,8 +166,23 @@ class GameGiveawaysApp(ctk.CTk):
     def load_games(self):
         try:
             all_games = self.api.fetch_all_games(limit=40)
+
+            # пометка "скоро закончится"
+            enrich_ending_flags(all_games, hours=24)
+
+            # уведомления о новых FREE
+            if not self.first_load:
+                free_games = [g for g in all_games if (g.get("price") or "").strip().upper() == "FREE"]
+                new_games = self.notification_manager.check_new_games(free_games)
+                if new_games:
+                    self.notification_manager.notify_new_games(new_games, max_notifications=3)
+            else:
+                self.notification_manager.mark_as_seen(all_games)
+
+            self.first_load = False
             self.games = self.distribute_games(all_games)
             self.after(0, lambda: self.on_games_loaded(len(all_games)))
+
         except Exception as e:
             print("ERROR:", e)
             self.after(0, self.on_games_error)
@@ -178,8 +298,11 @@ class GameGiveawaysApp(ctk.CTk):
             hover_color="#666666",
             command=win.destroy,
         ).pack(side="right")
+
+
 if __name__ == "__main__":
     import sys
+
     try:
         if check_and_update():
             sys.exit(0)

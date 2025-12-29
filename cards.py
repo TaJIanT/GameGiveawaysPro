@@ -1,4 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
+
 import customtkinter as ctk
 from config import THEMES
 
@@ -14,45 +15,40 @@ _INFLIGHT = set()
 CARD_BORDER = "#252a46"
 CARD_BORDER_HOVER = "#3a4a8a"
 
-# Чуть светлее, чем THEMES["dark"]["fg"]
 CARD_FG = THEMES["dark"]["fg"]
 CARD_FG_HOVER = "#1b2238"
 
-CARD_H = 160
-CARD_H_HOVER = 170   # насколько увеличиваем (подбери 168..176)
-CARD_PADX = 12
-CARD_PADY = 10
-CARD_PADX_HOVER = 10
-CARD_PADY_HOVER = 8
+SOON_BORDER = "#ff4d4d"
+SOON_BORDER_HOVER = "#ff7a7a"
+SOON_FG = "#22161a"
+SOON_FG_HOVER = "#2a1b20"
+SOON_BADGE_BG = "#ff4d4d"
 
-def _apply_card_style(frame: ctk.CTkFrame, hover: bool):
-    frame.configure(
-        border_color=(CARD_BORDER_HOVER if hover else CARD_BORDER),
-        fg_color=(CARD_FG_HOVER if hover else CARD_FG)
-    )
+NEW_BADGE_BG = "#2ecc71"
 
-def _bind_hover_recursive(root_widget, enter_cb, leave_cb):
-    try:
-        root_widget.bind("<Enter>", enter_cb)
-        root_widget.bind("<Leave>", leave_cb)
-    except Exception:
-        pass
-    try:
-        for child in root_widget.winfo_children():
-            _bind_hover_recursive(child, enter_cb, leave_cb)
-    except Exception:
-        pass
 
-def _bind_card_hover(card: ctk.CTkFrame, extra_widgets=None):
+def _apply_card_style(frame: ctk.CTkFrame, hover: bool, ending_soon: bool = False):
+    if ending_soon:
+        frame.configure(
+            border_color=(SOON_BORDER_HOVER if hover else SOON_BORDER),
+            fg_color=(SOON_FG_HOVER if hover else SOON_FG),
+        )
+    else:
+        frame.configure(
+            border_color=(CARD_BORDER_HOVER if hover else CARD_BORDER),
+            fg_color=(CARD_FG_HOVER if hover else CARD_FG),
+        )
+
+
+def _bind_card_hover(card: ctk.CTkFrame, extra_widgets=None, ending_soon: bool = False):
     extra_widgets = extra_widgets or []
 
     def on_enter(_=None):
-        _apply_card_style(card, True)
+        _apply_card_style(card, True, ending_soon)
 
     def on_leave(_=None):
-        _apply_card_style(card, False)
+        _apply_card_style(card, False, ending_soon)
 
-    # только безопасные контейнеры, не рекурсивно
     for w in [card, *extra_widgets]:
         try:
             w.bind("<Enter>", on_enter)
@@ -62,23 +58,32 @@ def _bind_card_hover(card: ctk.CTkFrame, extra_widgets=None):
 
     return on_enter, on_leave
 
+
 def create_game_card(parent, game, details_callback):
+    ending_soon = bool(game.get("ending_soon"))
+    is_new = bool(game.get("is_new"))
+
     card = ctk.CTkFrame(
         parent,
         fg_color=CARD_FG,
-        height=CARD_H,
+        height=160,
         corner_radius=16,
         border_width=2,
-        border_color=CARD_BORDER
+        border_color=CARD_BORDER,
     )
     card.pack(fill="x", padx=12, pady=10)
     card.pack_propagate(False)
+
+    if ending_soon:
+        _apply_card_style(card, False, ending_soon)
 
     img_frame = ctk.CTkFrame(card, fg_color="#2a2a3a", width=120, height=140, corner_radius=12)
     img_frame.place(x=15, y=10)
     img_frame.pack_propagate(False)
 
-    img_label = ctk.CTkLabel(img_frame, text="IMG", text_color="#888888", font=ctk.CTkFont(size=14, weight="bold"))
+    img_label = ctk.CTkLabel(
+        img_frame, text="IMG", text_color="#888888", font=ctk.CTkFont(size=14, weight="bold")
+    )
     img_label.place(relx=0.5, rely=0.5, anchor="center")
 
     img_url = (game.get("image") or "").strip()
@@ -115,11 +120,12 @@ def create_game_card(parent, game, details_callback):
 
     title = (game.get("title") or "Unknown").strip()
     title_show = title[:65] + ("..." if len(title) > 65 else "")
+
     ctk.CTkLabel(
         content,
         text=title_show,
         font=ctk.CTkFont(size=18, weight="bold"),
-        text_color=THEMES["dark"]["text"]
+        text_color=THEMES["dark"]["text"],
     ).place(x=0, y=0)
 
     platform = (game.get("platform") or "").strip()
@@ -130,9 +136,22 @@ def create_game_card(parent, game, details_callback):
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="white",
             fg_color="#4da3ff",
-            padx=12, pady=4,
-            corner_radius=6
+            padx=12,
+            pady=4,
+            corner_radius=6,
         ).place(x=0, y=30)
+
+    if is_new:
+        ctk.CTkLabel(
+            content,
+            text="Новая игра",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="white",
+            fg_color=NEW_BADGE_BG,
+            padx=10,
+            pady=4,
+            corner_radius=6,
+        ).place(x=140, y=30)
 
     price_raw = (game.get("price") or "FREE").strip()
     price_show = "Бесплатно" if price_raw.upper() == "FREE" else price_raw
@@ -141,11 +160,12 @@ def create_game_card(parent, game, details_callback):
         content,
         text=price_show,
         font=ctk.CTkFont(size=24, weight="bold"),
-        text_color="#00ff88" if price_raw.upper() == "FREE" else "#ffb020"
+        text_color="#00ff88" if price_raw.upper() == "FREE" else "#ffb020",
     ).place(x=0, y=62)
 
     source = (game.get("source") or "").strip()
     score = game.get("ratingscore")
+
     info_parts = []
     if source:
         info_parts.append(source)
@@ -154,17 +174,33 @@ def create_game_card(parent, game, details_callback):
             info_parts.append(f"Рейтинг {float(score):.1f}")
         except Exception:
             pass
+
     if info_parts:
         ctk.CTkLabel(
             content,
-            text="    ".join(info_parts),
+            text="  ".join(info_parts),
             font=ctk.CTkFont(size=12),
-            text_color=THEMES["dark"]["text_secondary"]
+            text_color=THEMES["dark"]["text_secondary"],
         ).place(x=0, y=98)
+
+    if ending_soon:
+        hrs = game.get("ends_in_hours")
+        tail = ""
+        if isinstance(hrs, (int, float)):
+            tail = f"  ~{hrs:.1f}ч"
+        ctk.CTkLabel(
+            content,
+            text="Скоро закончится" + tail,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="white",
+            fg_color=SOON_BADGE_BG,
+            padx=10,
+            pady=4,
+            corner_radius=6,
+        ).place(x=0, y=128)
 
     BTN_H = 34
     R = 10
-
     link = (game.get("link") or "").strip()
 
     open_btn = ctk.CTkButton(
@@ -199,10 +235,9 @@ def create_game_card(parent, game, details_callback):
         command=lambda: details_callback(game),
     )
     details_btn.place(relx=1.0, rely=1.0, anchor="se", x=-12, y=-12)
-    card_on_enter, _ = _bind_card_hover(card, extra_widgets=[content, img_frame])
 
-    # Когда курсор на кнопке  карточку тоже держим подсвеченной,
-    # но hover_color кнопок работает штатно.
+    card_on_enter, _ = _bind_card_hover(card, extra_widgets=[content, img_frame], ending_soon=ending_soon)
+
     try:
         open_btn.bind("<Enter>", lambda e: card_on_enter())
         details_btn.bind("<Enter>", lambda e: card_on_enter())
@@ -210,6 +245,3 @@ def create_game_card(parent, game, details_callback):
         pass
 
     return card
-
-
-

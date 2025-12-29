@@ -1,4 +1,13 @@
-﻿# -*- coding: utf-8 -*-
+﻿# --- early self-update (must be before any heavy imports) ---
+try:
+    from update_check import check_and_update
+    import sys
+    if check_and_update():
+        raise SystemExit(0)
+except Exception:
+    pass
+# -----------------------------------------------------------
+# -*- coding: utf-8 -*-
 
 from update_check import check_and_update
 
@@ -311,4 +320,5 @@ if __name__ == "__main__":
 
     app = GameGiveawaysApp()
     app.mainloop()
+
 

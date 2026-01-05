@@ -1,20 +1,20 @@
 ﻿# -*- coding: utf-8 -*-
 
-import customtkinter as ctk
-from config import THEMES
-
 import threading
-import requests
 from io import BytesIO
+
+import customtkinter as ctk
+import requests
 from PIL import Image
 from customtkinter import CTkImage
+
+from config import THEMES
 
 _IMG_CACHE = {}
 _INFLIGHT = set()
 
 CARD_BORDER = "#252a46"
 CARD_BORDER_HOVER = "#3a4a8a"
-
 CARD_FG = THEMES["dark"]["fg"]
 CARD_FG_HOVER = "#1b2238"
 
@@ -91,6 +91,7 @@ def create_game_card(parent, game, details_callback):
         img_label.configure(image=_IMG_CACHE[img_url], text="")
         img_label.image = _IMG_CACHE[img_url]
     else:
+
         def _worker():
             try:
                 resp = requests.get(img_url, timeout=(1.5, 3.0))
@@ -100,14 +101,19 @@ def create_game_card(parent, game, details_callback):
 
                 def _apply():
                     try:
+                        if not img_label.winfo_exists():
+                            return
                         ctk_img = CTkImage(light_image=pil_img, size=pil_img.size)
                         _IMG_CACHE[img_url] = ctk_img
                         img_label.configure(image=ctk_img, text="")
                         img_label.image = ctk_img
+                    except Exception:
+                        pass
                     finally:
                         _INFLIGHT.discard(img_url)
 
                 img_label.after(0, _apply)
+
             except Exception:
                 _INFLIGHT.discard(img_url)
 
@@ -120,7 +126,6 @@ def create_game_card(parent, game, details_callback):
 
     title = (game.get("title") or "Unknown").strip()
     title_show = title[:65] + ("..." if len(title) > 65 else "")
-
     ctk.CTkLabel(
         content,
         text=title_show,
@@ -155,7 +160,6 @@ def create_game_card(parent, game, details_callback):
 
     price_raw = (game.get("price") or "FREE").strip()
     price_show = "Бесплатно" if price_raw.upper() == "FREE" else price_raw
-
     ctk.CTkLabel(
         content,
         text=price_show,
@@ -165,7 +169,6 @@ def create_game_card(parent, game, details_callback):
 
     source = (game.get("source") or "").strip()
     score = game.get("ratingscore")
-
     info_parts = []
     if source:
         info_parts.append(source)
@@ -178,7 +181,7 @@ def create_game_card(parent, game, details_callback):
     if info_parts:
         ctk.CTkLabel(
             content,
-            text="  ".join(info_parts),
+            text=" ".join(info_parts),
             font=ctk.CTkFont(size=12),
             text_color=THEMES["dark"]["text_secondary"],
         ).place(x=0, y=98)
@@ -187,7 +190,7 @@ def create_game_card(parent, game, details_callback):
         hrs = game.get("ends_in_hours")
         tail = ""
         if isinstance(hrs, (int, float)):
-            tail = f"  ~{hrs:.1f}ч"
+            tail = f" ~{hrs:.1f}ч"
         ctk.CTkLabel(
             content,
             text="Скоро закончится" + tail,
@@ -199,17 +202,17 @@ def create_game_card(parent, game, details_callback):
             corner_radius=6,
         ).place(x=0, y=128)
 
-    BTN_H = 34
-    R = 10
-    link = (game.get("link") or "").strip()
+    btn_h = 34
+    r = 10
 
+    link = (game.get("link") or "").strip()
     open_btn = ctk.CTkButton(
         content,
         text="Открыть",
         font=ctk.CTkFont(size=12, weight="bold"),
         width=110,
-        height=BTN_H,
-        corner_radius=R,
+        height=btn_h,
+        corner_radius=r,
         fg_color="#1a2235",
         hover_color="#2a3a5a",
         border_width=2,
@@ -225,8 +228,8 @@ def create_game_card(parent, game, details_callback):
         text="Подробнее",
         font=ctk.CTkFont(size=13, weight="bold"),
         width=130,
-        height=BTN_H,
-        corner_radius=R,
+        height=btn_h,
+        corner_radius=r,
         fg_color=THEMES["dark"]["primary"],
         hover_color="#2bffe3",
         border_width=2,
@@ -237,7 +240,6 @@ def create_game_card(parent, game, details_callback):
     details_btn.place(relx=1.0, rely=1.0, anchor="se", x=-12, y=-12)
 
     card_on_enter, _ = _bind_card_hover(card, extra_widgets=[content, img_frame], ending_soon=ending_soon)
-
     try:
         open_btn.bind("<Enter>", lambda e: card_on_enter())
         details_btn.bind("<Enter>", lambda e: card_on_enter())

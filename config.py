@@ -1,4 +1,4 @@
-﻿APP_VERSION = "1.0.0.1"
+﻿APP_VERSION = "1.0.2"
 
 # -*- coding: utf-8 -*-
 APP_TITLE = "GameGiveawaysPro  Бесплатные игры"
@@ -18,6 +18,7 @@ THEMES = {
         "neon": ["#00d4aa", "#4da3ff", "#a855f7", "#ff3d81", "#ffb020"]
     }
 }
+
 
 
 

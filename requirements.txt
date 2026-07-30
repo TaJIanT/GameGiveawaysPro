@@ -1,0 +1,8 @@
+﻿customtkinter>=5.2.0
+requests>=2.31.0
+pystray
+pillow
+
+pyinstaller
+
+pyinstaller

@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Cache
+gamescache.json
+*.cache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build files
+*.exe
+updater.exe
+
+# Logs
+*.log
+
+# Local backups / logs / patch scripts
+*_backup_*
+*.backup_*
+*.broken_backup_*
+run_log.txt
+run_debug.ps1
+project_inventory.txt
+cleanup_backup_*/
+_local_trash/
+
+# Local app state
+notification_history.json
+
+# Python caches
+__pycache__/
+*.pyc
+

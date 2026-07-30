@@ -1,149 +1,30 @@
-# рџЋ® GameGiveawaysPro
+# 🎮 GameGiveawaysPro
 
-**GameGiveawaysPro** вЂ” Р±РµСЃРїР»Р°С‚РЅРѕРµ РґРµСЃРєС‚РѕРїРЅРѕРµ РїСЂРёР»РѕР¶РµРЅРёРµ РґР»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ Р±РµСЃРїР»Р°С‚РЅС‹С… РёРіСЂ Рё РІС‹РіРѕРґРЅС‹С… СЃРєРёРґРѕРє РЅР° РїРѕРїСѓР»СЏСЂРЅС‹С… РёРіСЂРѕРІС‹С… РїР»Р°С‚С„РѕСЂРјР°С….
+**GameGiveawaysPro** is a modern desktop application for gamers that automatically tracks and collects free game giveaways from platforms like Steam, Epic Games, and GOG.
 
-![Version]($11.0.2-blue)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://github.com/TaJIanT/GameGiveawaysPro/releases)
+[![Python](https://img.shields.io/badge/python-3.10+-green.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## рџ“‹ Р’РѕР·РјРѕР¶РЅРѕСЃС‚Рё
+## ✨ Key Features
 
-- рџЋЃ **РћС‚СЃР»РµР¶РёРІР°РЅРёРµ Р±РµСЃРїР»Р°С‚РЅС‹С… СЂР°Р·РґР°С‡** РёРіСЂ РЅР° Steam, Epic Games, GOG
-- рџ’° **РњРѕРЅРёС‚РѕСЂРёРЅРі СЃРєРёРґРѕРє** РґРѕ 95% РЅР° РїРѕРїСѓР»СЏСЂРЅС‹С… РїР»Р°С‚С„РѕСЂРјР°С…
-- рџ”„ **РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРµ РѕР±РЅРѕРІР»РµРЅРёРµ** СЃРїРёСЃРєР° РёРіСЂ
-- рџ“Љ **РЈРґРѕР±РЅР°СЏ С„РёР»СЊС‚СЂР°С†РёСЏ** РїРѕ РїР»Р°С‚С„РѕСЂРјР°Рј (РѕС‚РґРµР»СЊРЅС‹Рµ РІРєР»Р°РґРєРё)
-- рџЊђ **РџСЂСЏРјС‹Рµ СЃСЃС‹Р»РєРё** РЅР° СЃС‚СЂР°РЅРёС†С‹ РёРіСЂ РґР»СЏ Р±С‹СЃС‚СЂРѕРіРѕ РїРѕР»СѓС‡РµРЅРёСЏ
-- рџЋЁ **РЎРѕРІСЂРµРјРµРЅРЅС‹Р№ С‚РµРјРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ** СЃ РЅРµРѕРЅРѕРІС‹РјРё Р°РєС†РµРЅС‚Р°РјРё
-- рџ’ѕ **РљРµС€РёСЂРѕРІР°РЅРёРµ РґР°РЅРЅС‹С…** РґР»СЏ СЂР°Р±РѕС‚С‹ Р±РµР· РёРЅС‚РµСЂРЅРµС‚Р°
-- рџ”” **РЎРёСЃС‚РµРјР° Р°РІС‚РѕРѕР±РЅРѕРІР»РµРЅРёР№** РїСЂРёР»РѕР¶РµРЅРёСЏ
+- 💰 **Smart Calculator**: Automatically calculates the total value of all currently free games and displays your total savings.
+- 🎯 **Silent Sniper**: A background scanner that runs automatically. Minimize the app, and it will notify you with a sound alert whenever a new giveaway drops.
+- 🔗 **Smart Platform Buttons**: Direct integration to open Steam games straight in your desktop client, plus dedicated buttons for Epic Games and GOG.
+- 🔔 **Desktop Notifications**: Instant alerts so you never miss limited-time freebies.
+- 🗂️ **System Tray Support**: Runs quietly in the background without cluttering your taskbar.
+- 🎨 **Sleek CustomTkinter UI**: Modern dark theme interface designed for comfort.
 
-## рџ–јпёЏ РЎРєСЂРёРЅС€РѕС‚С‹
+## 📥 How to Install & Use
 
-### Р’РєР»Р°РґРєР° "РЎРєРёРґРєРё" - Р’С‹РіРѕРґРЅС‹Рµ РїСЂРµРґР»РѕР¶РµРЅРёСЏ
-![РЎРєРёРґРєРё](https://github.com/user-attachments/assets/ed86ea7d-e1fd-4417-b4bf-5b06d80bee83)
-*РњРѕРЅРёС‚РѕСЂРёРЅРі СЃРєРёРґРѕРє РґРѕ 97% РЅР° РїРѕРїСѓР»СЏСЂРЅС‹Рµ РёРіСЂС‹*
+1. Go to the [Releases](https://github.com/TaJIanT/GameGiveawaysPro/releases) page.
+2. Download the latest GameGiveawaysPro.exe.
+3. Run the application and enjoy free games!
 
-### Р’РєР»Р°РґРєР° "Р’СЃРµ" - Р‘РµСЃРїР»Р°С‚РЅС‹Рµ РёРіСЂС‹
-![Р‘РµСЃРїР»Р°С‚РЅС‹Рµ РёРіСЂС‹](https://github.com/user-attachments/assets/132001dc-bd6c-4922-baf8-d3b2bce37019)
-*РћС‚СЃР»РµР¶РёРІР°РЅРёРµ Р±РµСЃРїР»Р°С‚РЅС‹С… СЂР°Р·РґР°С‡ РЅР° Steam, Epic Games Рё РґСЂСѓРіРёС… РїР»Р°С‚С„РѕСЂРјР°С…*
+## 🤝 Contributing
 
-## рџ“Ґ РЈСЃС‚Р°РЅРѕРІРєР°
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
 
-### Р’Р°СЂРёР°РЅС‚ 1: Р“РѕС‚РѕРІС‹Р№ EXE-С„Р°Р№Р» (Windows)
+## 📄 License
 
-1. РџРµСЂРµР№РґРёС‚Рµ РІ СЂР°Р·РґРµР» [Releases](https://github.com/TaJIanT/GameGiveawaysPro/releases)
-2. РЎРєР°С‡Р°Р№С‚Рµ РїРѕСЃР»РµРґРЅСЋСЋ РІРµСЂСЃРёСЋ `GameGiveawaysPro.exe`
-3. Р—Р°РїСѓСЃС‚РёС‚Рµ С„Р°Р№Р» вЂ” СѓСЃС‚Р°РЅРѕРІРєР° РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ!
-
-### Р’Р°СЂРёР°РЅС‚ 2: Р—Р°РїСѓСЃРє РёР· РёСЃС…РѕРґРЅРёРєРѕРІ
-
-1. РљР»РѕРЅРёСЂСѓР№С‚Рµ СЂРµРїРѕР·РёС‚РѕСЂРёР№:
-```bash
-git clone https://github.com/TaJIanT/GameGiveawaysPro.git
-cd GameGiveawaysPro
-```
-
-2. РЈСЃС‚Р°РЅРѕРІРёС‚Рµ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё:
-```bash
-pip install -r requirements.txt
-```
-
-3. Р—Р°РїСѓСЃС‚РёС‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ:
-```bash
-python main.py
-```
-
-## рџ› пёЏ РЎРёСЃС‚РµРјРЅС‹Рµ С‚СЂРµР±РѕРІР°РЅРёСЏ
-
-- **РћРЎ**: Windows 10/11 (РґР»СЏ EXE) РёР»Рё Р»СЋР±Р°СЏ РћРЎ СЃ Python
-- **Python**: 3.8 РёР»Рё РІС‹С€Рµ (РґР»СЏ Р·Р°РїСѓСЃРєР° РёР· РёСЃС…РѕРґРЅРёРєРѕРІ)
-- **РРЅС‚РµСЂРЅРµС‚**: С‚СЂРµР±СѓРµС‚СЃСЏ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ СЃРїРёСЃРєР° РёРіСЂ
-- **RAM**: РјРёРЅРёРјСѓРј 256 РњР‘
-- **Р Р°Р·СЂРµС€РµРЅРёРµ СЌРєСЂР°РЅР°**: СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ 1920x1080 Рё РІС‹С€Рµ
-
-## рџЋЇ РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ
-
-1. **Р—Р°РїСѓСЃС‚РёС‚Рµ РїСЂРёР»РѕР¶РµРЅРёРµ** вЂ” СЃРїРёСЃРѕРє РёРіСЂ Р·Р°РіСЂСѓР·РёС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё
-2. **Р’С‹Р±РµСЂРёС‚Рµ РІРєР»Р°РґРєСѓ**: Р’СЃРµ / Steam / Epic / GOG / РЎРєРёРґРєРё
-3. **РљР»РёРєРЅРёС‚Рµ РЅР° РєР°СЂС‚РѕС‡РєСѓ РёРіСЂС‹** РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° РїРѕРґСЂРѕР±РЅРѕР№ РёРЅС„РѕСЂРјР°С†РёРё
-4. **РќР°Р¶РјРёС‚Рµ "РћС‚РєСЂС‹С‚СЊ РІ Р±СЂР°СѓР·РµСЂРµ"** РґР»СЏ РїРµСЂРµС…РѕРґР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ РёРіСЂС‹
-5. **РСЃРїРѕР»СЊР·СѓР№С‚Рµ РєРЅРѕРїРєСѓ "РћР±РЅРѕРІРёС‚СЊ"** РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ СЃРїРёСЃРєР°
-
-### РќР°СЃС‚СЂРѕР№РєРё
-
-- **GamerPower** вЂ” РІРєР»СЋС‡РёС‚Рµ/РѕС‚РєР»СЋС‡РёС‚Рµ РёСЃС‚РѕС‡РЅРёРє РґР°РЅРЅС‹С… GamerPower API РґР»СЏ СЂР°Р·РґР°С‡ Steam
-
-## рџ”§ РўРµС…РЅРѕР»РѕРіРёРё
-
-- **GUI**: [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) вЂ” СЃРѕРІСЂРµРјРµРЅРЅС‹Р№ UI-С„СЂРµР№РјРІРѕСЂРє
-- **API Sources**:
-  - [CheapShark API](https://apidocs.cheapshark.com/) вЂ” СЃРєРёРґРєРё Рё РїСЂРµРґР»РѕР¶РµРЅРёСЏ
-  - [GamerPower API](https://www.gamerpower.com/api-read) вЂ” Р±РµСЃРїР»Р°С‚РЅС‹Рµ СЂР°Р·РґР°С‡Рё
-- **РђРІС‚РѕРѕР±РЅРѕРІР»РµРЅРёСЏ**: GitHub Releases API
-- **РЎР±РѕСЂРєР°**: PyInstaller
-
-## рџ“‚ РЎС‚СЂСѓРєС‚СѓСЂР° РїСЂРѕРµРєС‚Р°
-
-```
-GameGiveawaysPro/
-в”њв”Ђв”Ђ main.py              # Р“Р»Р°РІРЅС‹Р№ С„Р°Р№Р» РїСЂРёР»РѕР¶РµРЅРёСЏ
-в”њв”Ђв”Ђ api.py               # Р›РѕРіРёРєР° СЂР°Р±РѕС‚С‹ СЃ API (CheapShark, GamerPower)
-в”њв”Ђв”Ђ cards.py             # РљРѕРјРїРѕРЅРµРЅС‚С‹ РєР°СЂС‚РѕС‡РµРє РёРіСЂ
-в”њв”Ђв”Ђ tabs.py              # РЎРёСЃС‚РµРјР° РІРєР»Р°РґРѕРє
-в”њв”Ђв”Ђ header.py            # РЁР°РїРєР° РїСЂРёР»РѕР¶РµРЅРёСЏ
-в”њв”Ђв”Ђ config.py            # РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ Рё С‚РµРјС‹
-в”њв”Ђв”Ђ storage.py           # Р Р°Р±РѕС‚Р° СЃ Р»РѕРєР°Р»СЊРЅС‹Рј С…СЂР°РЅРёР»РёС‰РµРј
-в”њв”Ђв”Ђ update_check.py      # РџСЂРѕРІРµСЂРєР° РѕР±РЅРѕРІР»РµРЅРёР№
-в”њв”Ђв”Ђ updater.py           # РњРѕРґСѓР»СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ
-в”њв”Ђв”Ђ build.ps1            # РЎРєСЂРёРїС‚ СЃР±РѕСЂРєРё
-в”њв”Ђв”Ђ requirements.txt     # Р—Р°РІРёСЃРёРјРѕСЃС‚Рё Python
-в””в”Ђв”Ђ README.md            # Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ
-```
-
-## рџ”Ё РЎР±РѕСЂРєР° EXE
-
-Р”Р»СЏ СЃР±РѕСЂРєРё РёСЃРїРѕР»РЅСЏРµРјРѕРіРѕ С„Р°Р№Р»Р° РёСЃРїРѕР»СЊР·СѓР№С‚Рµ PowerShell-СЃРєСЂРёРїС‚:
-
-```powershell
-.\build.ps1
-```
-
-Р“РѕС‚РѕРІС‹Р№ С„Р°Р№Р» РїРѕСЏРІРёС‚СЃСЏ РІ РїР°РїРєРµ `dist/`.
-
-## рџ¤ќ Р’РєР»Р°Рґ РІ РїСЂРѕРµРєС‚
-
-РџСЂРёРІРµС‚СЃС‚РІСѓСЋС‚СЃСЏ Р»СЋР±С‹Рµ РїСЂРµРґР»РѕР¶РµРЅРёСЏ РїРѕ СѓР»СѓС‡С€РµРЅРёСЋ! Р’С‹ РјРѕР¶РµС‚Рµ:
-
-1. РЎРѕР·РґР°С‚СЊ [Issue](https://github.com/TaJIanT/GameGiveawaysPro/issues) СЃ РѕРїРёСЃР°РЅРёРµРј РїСЂРѕР±Р»РµРјС‹ РёР»Рё РёРґРµРё
-2. РЎРґРµР»Р°С‚СЊ Fork СЂРµРїРѕР·РёС‚РѕСЂРёСЏ
-3. РЎРѕР·РґР°С‚СЊ Pull Request СЃ РІР°С€РёРјРё РёР·РјРµРЅРµРЅРёСЏРјРё
-
-## рџ“ќ Roadmap
-
-- [ ] РџРѕРґРґРµСЂР¶РєР° Р°РЅРіР»РёР№СЃРєРѕРіРѕ СЏР·С‹РєР°
-- [ ] РЈРІРµРґРѕРјР»РµРЅРёСЏ Рѕ РЅРѕРІС‹С… СЂР°Р·РґР°С‡Р°С…
-- [ ] Р¤РёР»СЊС‚СЂС‹ РїРѕ Р¶Р°РЅСЂР°Рј
-- [ ] РСЃС‚РѕСЂРёСЏ РїСЂРѕСЃРјРѕС‚СЂРµРЅРЅС‹С… РёРіСЂ
-- [ ] РР·Р±СЂР°РЅРЅРѕРµ
-- [ ] Р­РєСЃРїРѕСЂС‚ СЃРїРёСЃРєР° РёРіСЂ
-- [ ] РўРµРјРЅР°СЏ/СЃРІРµС‚Р»Р°СЏ С‚РµРјР°
-- [ ] РќР°СЃС‚СЂРѕР№РєР° РёРЅС‚РµСЂРІР°Р»Р° Р°РІС‚РѕРѕР±РЅРѕРІР»РµРЅРёСЏ
-
-## вљ–пёЏ Р›РёС†РµРЅР·РёСЏ
-
-Р­С‚РѕС‚ РїСЂРѕРµРєС‚ СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ РїРѕРґ Р»РёС†РµРЅР·РёРµР№ MIT. РЎРј. С„Р°Р№Р» [LICENSE](LICENSE) РґР»СЏ РїРѕРґСЂРѕР±РЅРѕСЃС‚РµР№.
-
-## рџ™Џ Р‘Р»Р°РіРѕРґР°СЂРЅРѕСЃС‚Рё
-
-- [CheapShark](https://www.cheapshark.com/) Р·Р° API СЃРєРёРґРѕРє
-- [GamerPower](https://www.gamerpower.com/) Р·Р° API СЂР°Р·РґР°С‡
-- [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) Р·Р° РѕС‚Р»РёС‡РЅС‹Р№ UI-С„СЂРµР№РјРІРѕСЂРє
-
-## рџ“§ РљРѕРЅС‚Р°РєС‚С‹
-
-Р•СЃР»Рё Сѓ РІР°СЃ РµСЃС‚СЊ РІРѕРїСЂРѕСЃС‹ РёР»Рё РїСЂРµРґР»РѕР¶РµРЅРёСЏ, СЃРѕР·РґР°Р№С‚Рµ [Issue](https://github.com/TaJIanT/GameGiveawaysPro/issues) РІ СЂРµРїРѕР·РёС‚РѕСЂРёРё.
-
----
-
-в­ђ Р•СЃР»Рё РІР°Рј РїРѕРЅСЂР°РІРёР»СЃСЏ РїСЂРѕРµРєС‚, РїРѕСЃС‚Р°РІСЊС‚Рµ Р·РІРµР·РґСѓ РЅР° GitHub!
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

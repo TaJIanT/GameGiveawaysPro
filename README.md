@@ -1,30 +1,43 @@
 # 🎮 GameGiveawaysPro
 
-**GameGiveawaysPro** is a modern desktop application for gamers that automatically tracks and collects free game giveaways from platforms like Steam, Epic Games, and GOG.
+**GameGiveawaysPro** — это современное приложение для геймеров, которое автоматически отслеживает и собирает бесплатные раздачи игр со всех популярных платформ: **Steam, Epic Games, GOG, itch.io** и других!
 
-[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://github.com/TaJIanT/GameGiveawaysPro/releases)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/TaJIanT/GameGiveawaysPro/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)]()
 [![Python](https://img.shields.io/badge/python-3.10+-green.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ Key Features
+---
 
-- 💰 **Smart Calculator**: Automatically calculates the total value of all currently free games and displays your total savings.
-- 🎯 **Silent Sniper**: A background scanner that runs automatically. Minimize the app, and it will notify you with a sound alert whenever a new giveaway drops.
-- 🔗 **Smart Platform Buttons**: Direct integration to open Steam games straight in your desktop client, plus dedicated buttons for Epic Games and GOG.
-- 🔔 **Desktop Notifications**: Instant alerts so you never miss limited-time freebies.
-- 🗂️ **System Tray Support**: Runs quietly in the background without cluttering your taskbar.
-- 🎨 **Sleek CustomTkinter UI**: Modern dark theme interface designed for comfort.
+## 📸 Скриншоты
+*(Здесь вы можете перетащить скриншот вашей программы прямо в редактор GitHub, чтобы показать красоту интерфейса)*
 
-## 📥 How to Install & Use
+---
 
-1. Go to the [Releases](https://github.com/TaJIanT/GameGiveawaysPro/releases) page.
-2. Download the latest GameGiveawaysPro.exe.
-3. Run the application and enjoy free games!
+## ✨ Главные возможности
 
-## 🤝 Contributing
+*   🛒 **Все магазины в одном окне**: Поддержка Steam, Epic Games, GOG, а также сборник бесплатных ключей и промокодов.
+*   🎯 **Тихий снайпер (Фоновый режим)**: Программа работает в системном трее и автоматически присылает звуковые уведомления, как только появляется новая раздача. Вы не пропустите ни одной игры!
+*   ⚙️ **Полноценные настройки**: Выбирайте нужные платформы, настраивайте частоту проверок (от 15 минут до 2 часов) и управляйте автозагрузкой с Windows прямо из приложения.
+*   💰 **Умный Калькулятор**: Подсчитывает общую стоимость всех текущих раздач, показывая, сколько денег вы экономите прямо сейчас.
+*   ⚡ **Zero-Trace & CDN**: Никакого мусора на диске! Обложки игр проксируются, сжимаются "на лету" через открытый CDN и хранятся исключительно в оперативной памяти (строгий лимит в 100 изображений).
+*   🔄 **Автообновление**: Встроенный апдейтер сам скачает и установит новую версию, если она появится на GitHub.
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+## 📥 Как скачать и установить?
 
-## 📄 License
+Вам **не нужно** устанавливать Python или разбираться в коде!
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. Перейдите на страницу [Скачать (Releases)](https://github.com/TaJIanT/GameGiveawaysPro/releases/latest).
+2. Скачайте файл \GameGiveawaysPro.exe\.
+3. Запустите его (установка не требуется) и забирайте бесплатные игры!
+
+## 🛠️ Технологии
+*   **Интерфейс**: \CustomTkinter\ (Современный адаптивный темный дизайн).
+*   **Источники данных**: Интеграция с открытыми API GamerPower и CheapShark.
+*   **Оптимизация**: Использование \wsrv.nl\ для кэширования обложек и защита от утечек памяти.
+
+## 🤝 Вклад в проект
+Нашли баг или есть идеи для новых функций? Создавайте Issue или отправляйте Pull Request!
+
+## 📄 Лицензия
+Проект распространяется по открытой лицензии MIT — подробности в файле [LICENSE](LICENSE). Никакой рекламы, вирусов или скрытых майнеров.

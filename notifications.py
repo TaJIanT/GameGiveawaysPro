@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import json
 import os
@@ -6,7 +6,6 @@ import threading
 import tkinter as tk
 import webbrowser
 from datetime import datetime, timezone
-
 
 class NotificationManager:
     def __init__(self, parent=None):
@@ -83,9 +82,13 @@ class NotificationManager:
     def notify(self, new_games, max_items=3):
         if not new_games:
             return
+            
+        # Интеграция с настройками звука
         try:
-            import winsound
-            winsound.MessageBeep(winsound.MB_ICONINFORMATION)
+            from storage import load_settings
+            if load_settings().get("sound_notifications", True):
+                import winsound
+                winsound.MessageBeep(winsound.MB_ICONINFORMATION)
         except Exception:
             pass
 

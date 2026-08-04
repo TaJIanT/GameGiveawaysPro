@@ -1,11 +1,24 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import threading
 import pystray
 from pystray import MenuItem as item
 from PIL import Image, ImageDraw
 
 def _default_image():
-    # простая зелёная иконка (чтобы не хранить файл)
+    import os, sys
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    icon_path = os.path.join(base_path, "icon.ico")
+    if os.path.exists(icon_path):
+        try:
+            return Image.open(icon_path)
+        except Exception:
+            pass
+
+    # Fallback (если файл случайно удален)
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.ellipse((8, 8, 56, 56), fill=(0, 212, 170, 255))

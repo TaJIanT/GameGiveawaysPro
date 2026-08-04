@@ -1,0 +1,15 @@
+{
+  "autorun": true,
+  "start_minimized": false,
+  "minimize_to_tray": true,
+  "sound_notifications": true,
+  "auto_refresh_enabled": true,
+  "auto_refresh_interval": 30,
+  "platforms": {
+    "steam": true,
+    "epic": true,
+    "gog": true,
+    "loot": true
+  },
+  "hide_welcome": false
+}

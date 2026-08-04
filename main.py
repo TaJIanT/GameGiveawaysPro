@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+# --- early self-update (must be before any heavy imports) ---
+try:
+    from update_check import check_and_update
+    import sys
+    if check_and_update():
+        raise SystemExit(0)
+except Exception:
+    pass
+# -----------------------------------------------------------
 
+import sys
 import customtkinter as ctk
-from update_check import check_update_info
-from welcome import SplashScreen
 import threading
 
 from config import THEMES, APP_TITLE
@@ -10,16 +18,33 @@ from api import GameAPI
 from header import create_header
 from tabs import create_tabs
 from cards import create_game_card
-
-
 from tray_icon import TrayController
 from notifications import NotificationManager
+from storage import load_settings
+from update_check import check_update_info
+from welcome import SplashScreen
+from settings_win import SettingsWindow
+
 class GameGiveawaysApp(ctk.CTk):
+    def resource_path(self, relative_path):
+        import os, sys
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
+
     def __init__(self):
         super().__init__()
+        
+        self.settings = load_settings()
 
         ctk.set_appearance_mode("dark")
         self.title(APP_TITLE)
+        try:
+            self.iconbitmap(self.resource_path("icon.ico"))
+        except Exception:
+            pass
         self.geometry("1800x1100")
         self.configure(fg_color=THEMES["dark"]["bg"])
 
@@ -27,20 +52,17 @@ class GameGiveawaysApp(ctk.CTk):
         self.games = {}
         self._loading = False
 
-
-
-        # уведомления
         self.notification_manager = NotificationManager(parent=self)
         self.first_load = True
-        # трей
+        
         self.tray = TrayController(self)
         self.tray.start()
 
-        # крестик -> скрыть в трей
         try:
             self.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
         except Exception:
             pass
+
         self.header, self.status_label, self.refresh_btn, self.progress = create_header(
             self, self.refresh_games_async
         )
@@ -64,13 +86,19 @@ class GameGiveawaysApp(ctk.CTk):
         self.savings_label = ctk.CTkLabel(self.nav_frame, text="", font=ctk.CTkFont(size=14, weight="bold"), text_color="#00dd6f")
         self.savings_label.pack(side="left", padx=14)
 
+    def open_settings(self):
+        SettingsWindow(self, on_save_callback=self.on_settings_saved)
+
+    def on_settings_saved(self, new_settings):
+        self.settings = new_settings
+        self.refresh_games_async()
+
     def on_toggle_gamerpower(self):
         self.api.set_use_gamerpower(bool(self.gp_var.get()))
         self.refresh_games_async()
 
     def set_loading(self, value: bool):
         self._loading = value
-
         if value:
             self.status_label.configure(text="Обновляем")
             self.refresh_btn.configure(state="disabled")
@@ -86,8 +114,11 @@ class GameGiveawaysApp(ctk.CTk):
             self.progress.set(0)
 
     def auto_refresh(self):
-        self.refresh_games_async()
-        self.after(1800000, self.auto_refresh)  # 30 минут (в миллисекундах)
+        if self.settings.get("auto_refresh_enabled", True):
+            self.refresh_games_async()
+            
+        interval_mins = self.settings.get("auto_refresh_interval", 30)
+        self.after(interval_mins * 60000, self.auto_refresh)
 
     def refresh_games_async(self, first_start=False):
         if self._loading:
@@ -103,7 +134,7 @@ class GameGiveawaysApp(ctk.CTk):
 
             tasks = [
                 ("Загрузка: Бесплатные...", lambda: self.api.fetch_cheapshark_free(12)),
-                ("Загрузка: Steam...", lambda: self.api.fetch_gamerpower_steam(10) if self.api.usegamerpower else []),
+                ("Загрузка: PC (Steam, Epic, GOG)...", lambda: getattr(self.api, 'fetch_gamerpower_pc', lambda x: getattr(self.api, 'fetch_gamerpower_steam', lambda y: [])(x))(15) if self.api.usegamerpower else []),
                 ("Загрузка: Ключи...", lambda: self.api.fetch_gamerpower_loot(15)),
                 ("Загрузка: Скидки...", lambda: self.api.fetch_cheapshark_discounts(35))
             ]
@@ -121,7 +152,8 @@ class GameGiveawaysApp(ctk.CTk):
                 if not self.first_load:
                     free_games = [g for g in all_games if (g.get("price") or "").strip().upper() == "FREE"]
                     new_games = self.notification_manager.check_new_games(free_games)
-                    if new_games: self.notification_manager.notify_new_games(new_games, 3)
+                    if new_games and self.settings.get("auto_refresh_enabled", True): 
+                        self.notification_manager.notify_new_games(new_games, 3)
                 else:
                     self.notification_manager.mark_as_seen(all_games)
                     self.first_load = False
@@ -133,24 +165,46 @@ class GameGiveawaysApp(ctk.CTk):
             self.after(0, self.on_games_error)
 
     def distribute_and_render(self, chunk):
+        platforms_cfg = self.settings.get("platforms", {})
+        steam_en = platforms_cfg.get("steam", True)
+        epic_en = platforms_cfg.get("epic", True)
+        gog_en = platforms_cfg.get("gog", True)
+        loot_en = platforms_cfg.get("loot", True)
+
         for g in chunk:
+            platkey = (g.get("platformkey") or "").lower()
+            genre = (g.get("genre") or "").lower()
+            source = (g.get("source") or "").lower()
+            title = (g.get("title") or "").lower()
+            
+            # Фильтрация платформ по настройкам
+            is_steam = "steam" in platkey or "steam" in source or "steam" in title
+            is_epic = "epic" in platkey or "epic" in source or "epic" in title
+            is_gog = "gog" in platkey or "gog" in source or "gog" in title
+            is_loot = genre == "loot" or platkey == "loot" or "loot" in source
+
+            if is_steam and not steam_en: continue
+            if is_epic and not epic_en: continue
+            if is_gog and not gog_en: continue
+            if is_loot and not loot_en: continue
+
             price = (g.get("price") or "").strip().upper()
             if price and price != "FREE":
                 self.games["deals"].append(g)
             else:
                 if g not in self.games["all"]: self.games["all"].append(g)
-                plat = (g.get("platformkey") or "").lower()
-                if plat == "steam": self.games["steam"].append(g)
-                elif plat == "epicgames": self.games["epic"].append(g)
-                elif plat == "gog": self.games["gog"].append(g)
-                if g.get("genre") == "Loot": self.games["loot"].append(g)
+                if is_steam: self.games["steam"].append(g)
+                elif is_epic: self.games["epic"].append(g)
+                elif is_gog: self.games["gog"].append(g)
+                
+                if is_loot: self.games["loot"].append(g)
+        
         self.after(0, self.render_all_games)
 
     def on_games_loaded(self, count):
         self.render_all_games()
         self.status_label.configure(text=f"Обновлено: {count} шт.")
         self.set_loading(False)
-
         if hasattr(self, 'savings_label'):
             total = sum(float(g.get("worth", 0)) for g in self.games.get("all", []) if str(g.get("price", "")).strip().upper() == "FREE")
             self.savings_label.configure(text=f"🔥 Вы экономите: ${total:.2f}" if total > 0 else "")
@@ -177,7 +231,7 @@ class GameGiveawaysApp(ctk.CTk):
         if not games:
             ctk.CTkLabel(
                 frame,
-                text="Ничего не найдено",
+                text="Ничего не найдено (или отключено в настройках)",
                 font=ctk.CTkFont(size=16, weight="bold"),
                 text_color=THEMES["dark"]["text_secondary"],
             ).pack(expand=True, pady=50)
@@ -200,10 +254,8 @@ class GameGiveawaysApp(ctk.CTk):
         platform = game.get("platform", "")
 
         header = ctk.CTkLabel(
-            right,
-            text=f"{title} [{platform}]" if platform else title,
-            font=ctk.CTkFont(size=22, weight="bold"),
-            text_color=THEMES["dark"]["text"],
+            right, text=f"{title} [{platform}]" if platform else title,
+            font=ctk.CTkFont(size=22, weight="bold"), text_color=THEMES["dark"]["text"]
         )
         header.grid(row=0, column=0, sticky="w", pady=(0, 6))
 
@@ -212,23 +264,15 @@ class GameGiveawaysApp(ctk.CTk):
         info = f"{price_show} {game.get('source','')}".strip(" ")
 
         ctk.CTkLabel(
-            right,
-            text=info,
-            font=ctk.CTkFont(size=13),
-            text_color=THEMES["dark"]["text_secondary"],
+            right, text=info, font=ctk.CTkFont(size=13), text_color=THEMES["dark"]["text_secondary"]
         ).grid(row=1, column=0, sticky="w", pady=(0, 10))
 
         desc = game.get("description", "Описания нет.")
         link = (game.get("link") or "").strip()
 
         textbox = ctk.CTkTextbox(
-            right,
-            width=540,
-            height=470,
-            fg_color="#111111",
-            text_color=THEMES["dark"]["text"],
-            font=ctk.CTkFont(size=13),
-            wrap="word",
+            right, width=540, height=470, fg_color="#111111", text_color=THEMES["dark"]["text"],
+            font=ctk.CTkFont(size=13), wrap="word"
         )
         textbox.grid(row=2, column=0, sticky="nsew")
         textbox.insert("1.0", desc + (f"\n\nСсылка: {link}" if link else ""))
@@ -242,49 +286,24 @@ class GameGiveawaysApp(ctk.CTk):
                 try:
                     app_id = link.split("app/")[1].split("/")[0]
                     ctk.CTkButton(
-                        btn_row,
-                        text="В Steam",
-                        fg_color="#1b2838",
-                        hover_color="#2a475e",
-                        text_color="#66c0f4",
+                        btn_row, text="В Steam", fg_color="#1b2838", hover_color="#2a475e", text_color="#66c0f4",
                         command=lambda id=app_id: __import__("webbrowser").open(f"steam://store/app/{id}")
                     ).pack(side="right", padx=(0, 10))
                 except: pass
 
             ctk.CTkButton(
-                btn_row,
-                text="В браузере",
-                fg_color=THEMES["dark"]["primary"],
-                hover_color="#00dd6f",
+                btn_row, text="В браузере", fg_color=THEMES["dark"]["primary"], hover_color="#00dd6f",
                 command=lambda: __import__("webbrowser").open(link),
             ).pack(side="right", padx=(0, 10))
             
             ctk.CTkButton(
-                btn_row,
-                text="Копировать",
-                fg_color="#1a2235",
-                hover_color="#2a3a5a",
-                text_color="#d6d9e6",
-                command=lambda: (win.clipboard_clear(), win.clipboard_append(link))
-            ).pack(side="right", padx=(0, 10))
-            
-            ctk.CTkButton(
-                btn_row,
-                text="Копировать",
-                fg_color="#1a2235",
-                hover_color="#2a3a5a",
-                text_color="#d6d9e6",
+                btn_row, text="Копировать", fg_color="#1a2235", hover_color="#2a3a5a", text_color="#d6d9e6",
                 command=lambda: (win.clipboard_clear(), win.clipboard_append(link))
             ).pack(side="right", padx=(0, 10))
 
         ctk.CTkButton(
-            btn_row,
-            text="Закрыть",
-            fg_color="#444444",
-            hover_color="#666666",
-            command=win.destroy,
+            btn_row, text="Закрыть", fg_color="#444444", hover_color="#666666", command=win.destroy
         ).pack(side="right")
-
 
     def show_window(self):
         try:
@@ -295,45 +314,40 @@ class GameGiveawaysApp(ctk.CTk):
             pass
 
     def exit_app(self):
-        try:
-            self.tray.stop()
-        except Exception:
-            pass
-        try:
-            self.destroy()
-        except Exception:
-            pass
+        try: self.tray.stop()
+        except Exception: pass
+        try: self.destroy()
+        except Exception: pass
 
     def hide_to_tray(self):
-        try:
-            self.withdraw()
-        except Exception:
-            pass
+        if self.settings.get("minimize_to_tray", True):
+            try: self.withdraw()
+            except Exception: pass
+        else:
+            self.exit_app()
+
 
 if __name__ == "__main__":
     app = GameGiveawaysApp()
-    try:
-        app.protocol("WM_DELETE_WINDOW", app.hide_to_tray)
-    except Exception:
-        pass
     app.withdraw()
 
+    is_autorun = "--minimized" in sys.argv
+    start_hidden = is_autorun or app.settings.get("start_minimized", False)
+    skip_splash = app.settings.get("hide_welcome", False) or is_autorun
+
     def start_main():
-        app.deiconify()
-        try:
-            app.protocol("WM_DELETE_WINDOW", app.hide_to_tray)
-        except Exception:
-            pass
-        app.lift()
-        app.focus_force()
+        if not start_hidden:
+            app.deiconify()
+            app.lift()
+            app.focus_force()
+        
         app.refresh_games_async(first_start=True)
+        interval_mins = app.settings.get("auto_refresh_interval", 30)
+        app.after(interval_mins * 60000, app.auto_refresh)
 
+    if skip_splash:
+        app.after(100, start_main)
+    else:
+        SplashScreen(app, check_update_info_func=check_update_info, on_start_callback=start_main)
 
-    SplashScreen(app, check_update_info_func=check_update_info, on_start_callback=start_main)
     app.mainloop()
-
-
-
-
-
-

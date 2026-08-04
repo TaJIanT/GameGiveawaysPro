@@ -33,6 +33,22 @@ def create_header(parent, refresh_callback):
     )
     subtitle.pack(anchor="w", pady=(0, 10))
 
+    # Центральный блок (предупреждение VPN)
+    center = ctk.CTkFrame(header_frame, fg_color="transparent")
+    center.pack(side="left", fill="both", expand=True)
+
+    vpn_warning = ctk.CTkLabel(
+        center,
+        text="⚠️ Для загрузки полного списка игр и обложек может потребоваться VPN",
+        font=ctk.CTkFont(size=12, weight="bold"),
+        text_color="#ffcc00",
+        fg_color="#2a2211",
+        corner_radius=6,
+        padx=12,
+        pady=4
+    )
+    vpn_warning.pack(expand=True)
+
     # Правый блок (статус/кнопки)
     right = ctk.CTkFrame(header_frame, fg_color="transparent")
     right.pack(side="right", fill="y", padx=12, pady=10)
@@ -69,6 +85,18 @@ def create_header(parent, refresh_callback):
     )
     gp_checkbox.grid(row=0, column=2, sticky="e")
 
+    settings_btn = ctk.CTkButton(
+        right,
+        text="⚙️",
+        width=36,
+        height=32,
+        font=ctk.CTkFont(size=15),
+        fg_color="#1a2235",
+        hover_color="#2a3a5a",
+        command=lambda: getattr(parent, "open_settings", lambda: None)()
+    )
+    settings_btn.grid(row=0, column=3, padx=(8, 0), sticky="e")
+
     parent.gp_var = ctk.BooleanVar(value=True)
     gp_checkbox.configure(variable=parent.gp_var, command=parent.on_toggle_gamerpower)
 
@@ -83,7 +111,7 @@ def create_header(parent, refresh_callback):
     progress.set(0)
     progress.pack_forget()
 
-    # Полоса меню под шапкой (пока просто фон и линия)
+    # Полоса меню под шапкой
     nav = ctk.CTkFrame(parent, height=34, fg_color="#0f1526", corner_radius=0)
     nav.pack(fill="x", pady=(0, 8))
     nav.pack_propagate(False)
@@ -93,7 +121,6 @@ def create_header(parent, refresh_callback):
     divider.pack(fill="x", pady=(0, 10))
     divider.pack_propagate(False)
 
-    # Возвращаем nav тоже  чтобы потом легко перенести туда твои табы (если захочешь)
     parent.nav_frame = nav
 
     return header_frame, status_label, refresh_btn, progress

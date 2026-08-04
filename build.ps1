@@ -11,7 +11,7 @@ Remove-Item ".\build" -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item ".\dist"  -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item ".\*.spec" -Force -ErrorAction SilentlyContinue
 
-& $py -m PyInstaller --noconfirm --clean --onefile --windowed --name "GameGiveawaysPro" ".\main.py"
+& $py -m PyInstaller --noconfirm --clean --onefile --windowed --icon="icon.ico" --add-data="icon.ico;." --name "GameGiveawaysPro" ".\main.py"
 & $py -m PyInstaller --noconfirm --clean --onefile --windowed --name "updater" ".\updater.py"
 & $py -m PyInstaller --noconfirm --clean --onefile --console  --debug=all --name "GameGiveawaysPro_debug" ".\main.py"
 

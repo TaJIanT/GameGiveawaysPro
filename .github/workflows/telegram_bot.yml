@@ -9,7 +9,7 @@ jobs:
   post_giveaways:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # Права на сохранение файла кэша обратно в репозиторий
 
     steps:
       - name: Скачивание кода
@@ -28,14 +28,14 @@ jobs:
 
       - name: Запуск Telegram Бота
         env:
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TG_TOKEN: $\{{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: $\{{ secrets.TG_CHAT_ID }}
         run: python telegram_poster.py
 
       - name: Сохранение памяти (кэша) бота
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add notification_history.json || true
+          git add notification_history.json
           git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
           git push

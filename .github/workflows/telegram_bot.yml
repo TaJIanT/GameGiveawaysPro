@@ -28,8 +28,8 @@ jobs:
 
       - name: Запуск Telegram Бота
         env:
-          TG_TOKEN: $\{{ secrets.TG_TOKEN }}
-          TG_CHAT_ID: $\{{ secrets.TG_CHAT_ID }}
+          TG_TOKEN: $\{{ 8718130457:AAFmPgKb34fS2iYvvYGmHe7bJS5jP6LDrrk }}
+          TG_CHAT_ID: $\{{ @ggpro_free_games }}
         run: python telegram_poster.py
 
       - name: Сохранение памяти (кэша) бота

@@ -120,7 +120,7 @@ def main():
         sys.exit(1)
 
     print("🤖 Запуск проверки раздач...")
-    api = GameAPI(usegamerpower=True)
+    api =GameAPI(usegamerpower=True)
     nm = NotificationManager(parent=None)
     
     current_free_games = fetch_all_freebies(api)
@@ -135,3 +135,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

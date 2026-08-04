@@ -1,3 +1,4 @@
+<img width="1920" height="988" alt="2026-08-03_12-40-25" src="https://github.com/user-attachments/assets/5ee9093e-2fe3-41a7-a46b-103ae99be10c" />
 # 🎮 GameGiveawaysPro
 
 **GameGiveawaysPro** — это современное приложение для геймеров, которое автоматически отслеживает и собирает бесплатные раздачи игр со всех популярных платформ: **Steam, Epic Games, GOG, itch.io** и других!
@@ -7,12 +8,7 @@
 [![Python](https://img.shields.io/badge/python-3.10+-green.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
----
 
-## 📸 Скриншоты
-*(Здесь вы можете перетащить скриншот вашей программы прямо в редактор GitHub, чтобы показать красоту интерфейса)*
-
----
 
 ## ✨ Главные возможности
 

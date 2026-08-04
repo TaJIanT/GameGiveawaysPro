@@ -27,10 +27,10 @@ jobs:
           pip install requests customtkinter pillow pystray
 
       - name: Запуск Telegram Бота
-      env:
-        TG_TOKEN: ${{ secrets.TG_TOKEN }}
-        TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-      run: python telegram_poster.py
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python telegram_poster.py
 
       - name: Сохранение памяти (кэша) бота
         run: |

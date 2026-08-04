@@ -1,0 +1,41 @@
+name: Telegram Auto Poster
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Запуск каждые 30 минут
+  workflow_dispatch: # Позволяет запустить скрипт вручную кнопкой
+
+jobs:
+  post_giveaways:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Скачивание кода
+        uses: actions/checkout@v4
+
+      - name: Установка Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Установка зависимостей
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          pip install requests customtkinter pillow pystray
+
+      - name: Запуск Telegram Бота
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: python telegram_poster.py
+
+      - name: Сохранение памяти (кэша) бота
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add notification_history.json || true
+          git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
+          git push

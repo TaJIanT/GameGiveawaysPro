@@ -15,16 +15,36 @@ def send_to_telegram(game):
     worth = float(game.get("worth", 0) or 0)
     link = game.get("link", "")
     img_url = game.get("image", "")
+    desc = game.get("description", "")
     
-    hashtag_plat = platform.replace(" ", "")
-    caption = f"🔥 <b>{title}</b>\n\n🎮 <b>Платформа:</b> {platform}\n"
+    # Делаем красивый хэштег платформы (убираем пробелы и дефисы)
+    hashtag_plat = platform.replace(" ", "").replace("-", "")
     
+    # Чистим и обрезаем описание, если оно есть (чтобы не было огромных "простыней" текста)
+    if desc:
+        desc = desc.replace("<br>", "").replace("\n", " ")
+        if len(desc) > 160:
+            desc = desc[:157] + "..."
+            
+    # --- ФОРМИРУЕМ КРАСИВЫЙ ПОСТ ---
+    caption = f"🔥 <b>{title}</b> 🔥\n\n"
+    
+    caption += f"🎮 <b>Платформа:</b> {platform}\n"
     if worth > 0:
-        caption += f"💰 <b>Стоимость:</b> <s>${worth:.2f}</s> ➡️ <b>Бесплатно!</b>\n\n"
+        caption += f"💰 <b>Обычная цена:</b> <s>${worth:.2f}</s> ➡️ <b>Бесплатно!</b>\n"
     else:
-        caption += f"💰 <b>Стоимость:</b> <b>Бесплатно!</b>\n\n"
+        caption += f"💰 <b>Цена:</b> <b>100% Бесплатно!</b>\n"
+        
+    if desc:
+        caption += f"\n📜 <b>Описание:</b> <i>{desc}</i>\n"
+        
+    caption += f"\n👉 <a href='{link}'><b>🕹️ ЗАБРАТЬ ИГРУ</b></a>\n\n"
     
-    caption += f"👉 <a href='{link}'><b>Забрать игру</b></a>\n\n#раздача #{hashtag_plat} #игры"
+    # --- РЕКЛАМА ВАШЕЙ ПРОГРАММЫ ---
+    caption += f"━━━━━━━━━━━━━━━━━━\n"
+    caption += f"🤖 <i>Отслеживай халяву прямо на рабочем столе с помощью <a href='https://github.com/TaJIanT/GameGiveawaysPro/releases/latest'>GameGiveawaysPro</a></i>\n\n"
+    
+    caption += f"#раздача #{hashtag_plat} #игры #бесплатно"
 
     try:
         if img_url:

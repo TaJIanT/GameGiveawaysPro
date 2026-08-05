@@ -2,20 +2,20 @@
 import requests
 import json
 import os
+import urllib.parse
 
 CHEAPSHARK_API = "https://www.cheapshark.com/api/1.0/deals"
 GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
 
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
-ALLOWED_STORES = ["1", "3", "7", "25"]  # Steam, GMG, GOG, Epic
+STORE_IDS = "1,3,7,25"  # Steam, GMG, GOG, Epic
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
 
 class GameAPI:
     def __init__(self, usegamerpower=True):
         self.usegamerpower = usegamerpower
         self.session = requests.Session()
-        # Маскируемся под браузер Chrome
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json"
@@ -24,30 +24,50 @@ class GameAPI:
     def set_use_gamerpower(self, value):
         self.usegamerpower = bool(value)
 
-    def fetch_cheapshark_free(self, limit=20):
-        # Убрали storeID из параметров запроса, чтобы обойти Firewall
-        params = {"upperPrice": 0, "sortBy": "Savings", "pageSize": 60}
+    def _get_cheapshark(self, params):
+        # 1. Сначала пробуем прямой запрос (он сработает на вашем домашнем ПК)
         try:
             r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
-            data = r.json()
+            return r.json()
         except Exception as e:
-            print(f"❌ Ошибка CheapShark (Free): {e}")
-            return []
+            print(f"⚠️ Прямой запрос к CheapShark заблокирован: {e}")
+            print("🔄 Пробуем обойти блокировку IP через прокси-сервер...")
+
+        # 2. Если нас заблокировали (как на GitHub), идем через публичные прокси
+        query_string = urllib.parse.urlencode(params)
+        target_url = f"{CHEAPSHARK_API}?{query_string}"
+        
+        # Прокси №1: AllOrigins
+        try:
+            proxy1 = f"https://api.allorigins.win/raw?url={urllib.parse.quote(target_url)}"
+            r1 = self.session.get(proxy1, timeout=15)
+            r1.raise_for_status()
+            return r1.json()
+        except Exception as e1:
+            print(f"⚠️ Ошибка первого прокси: {e1}")
+            
+            # Прокси №2: CodeTabs (Запасной)
+            try:
+                proxy2 = f"https://api.codetabs.com/v1/proxy/?quest={urllib.parse.quote(target_url)}"
+                r2 = self.session.get(proxy2, timeout=15)
+                r2.raise_for_status()
+                return r2.json()
+            except Exception as e2:
+                print(f"❌ Ошибка CheapShark: не удалось пробиться даже через прокси.")
+                return []
+
+    def fetch_cheapshark_free(self, limit=20):
+        params = {"storeID": STORE_IDS, "upperPrice": 2.0, "sortBy": "Savings", "pageSize": 60}
+        data = self._get_cheapshark(params)
 
         games = []
-        for deal in data:
-            # Фильтруем нужные платформы уже внутри нашего кода
-            store_id = str(deal.get("storeID", 0))
-            if store_id not in ALLOWED_STORES:
-                continue
-
+        for deal in data[:limit]:
             saleprice = float(deal.get("salePrice", 0) or 0)
             savings = float(deal.get("savings", 0) or 0)
-            if saleprice > 0 and savings < 95: 
-                continue
+            if saleprice > 0 or savings < 95: continue
 
-            storename = self.store_name(store_id)
+            storename = self.store_name(str(deal.get("storeID", 0)))
             games.append({
                 "id": f"cs-free-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -67,38 +87,23 @@ class GameAPI:
                 "tags": ["Deal", storename],
                 "end_at": None,
             })
-            if len(games) >= limit: 
-                break
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        # Аналогично, убрали storeID из параметров
-        params = {"upperPrice": int(max_price), "sortBy": "Savings", "pageSize": 60, "onSale": 1}
-        try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
-            r.raise_for_status()
-            data = r.json()
-        except Exception as e:
-            print(f"❌ Ошибка CheapShark (Discounts): {e}")
-            return []
+        params = {"storeID": STORE_IDS, "upperPrice": max_price, "sortBy": "Savings", "pageSize": 60, "onSale": 1}
+        data = self._get_cheapshark(params)
 
         games = []
         for deal in data:
-            store_id = str(deal.get("storeID", 0))
-            if store_id not in ALLOWED_STORES:
-                continue
-
             try:
                 saleprice = float(deal.get("salePrice", 0) or 0)
                 normalprice = float(deal.get("normalPrice", 0) or 0)
                 savings = float(deal.get("savings", 0) or 0)
-            except Exception: 
-                continue
+            except Exception: continue
 
-            if saleprice <= 0 or savings < min_savings: 
-                continue
+            if saleprice <= 0 or savings < min_savings: continue
 
-            storename = self.store_name(store_id)
+            storename = self.store_name(str(deal.get("storeID", 0)))
             games.append({
                 "id": f"cs-disc-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -118,8 +123,7 @@ class GameAPI:
                 "tags": ["Discount", storename],
                 "end_at": None,
             })
-            if len(games) >= limit: 
-                break
+            if len(games) >= limit: break
         return games
 
     def fetch_gamerpower_pc(self, limit=15):

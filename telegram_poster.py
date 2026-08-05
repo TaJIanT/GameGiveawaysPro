@@ -144,7 +144,7 @@ def main():
     
     # --- 1. БЕСПЛАТНЫЕ ИГРЫ ---
     raw_free = []
-    try: raw_free.extend(api.fetch_cheapshark_free(12))
+    try: raw_free.extend(api.fetch_cheapshark_free(15))
     except: pass
     try: raw_free.extend(api.fetch_gamerpower_pc(15))
     except: pass
@@ -158,14 +158,24 @@ def main():
 
     # --- 2. СКИДКИ ---
     discounts = []
+    
+    # Скидки с мировых площадок (CheapShark)
     try:
-        # Для теста оставляем мягкие настройки скидок
         raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)
-        print(f"📡 API вернуло скидок: {len(raw_discounts)}")
-        discounts = get_unseen_items(nm, raw_discounts)
-        print(f"🧠 После кэша осталось новых (скидок): {len(discounts)}")
+        print(f"📡 API вернуло скидок (CheapShark): {len(raw_discounts)}")
+        discounts.extend(get_unseen_items(nm, raw_discounts))
     except Exception as e:
-        print(f"❌ Ошибка получения скидок: {e}")
+        print(f"❌ Ошибка получения скидок CheapShark: {e}")
+
+    # Скидки с VK Play
+    try:
+        vk_discounts = api.fetch_vkplay_discounts(limit=10, min_savings=10.0)
+        print(f"📡 API вернуло скидок (VK Play): {len(vk_discounts)}")
+        discounts.extend(get_unseen_items(nm, vk_discounts))
+    except Exception as e:
+        print(f"❌ Ошибка получения скидок VK Play: {e}")
+        
+    print(f"🧠 После кэша осталось новых (скидок всего): {len(discounts)}")
 
     # --- 3. ПУБЛИКАЦИЯ ---
     total_posted = 0
@@ -178,7 +188,10 @@ def main():
 
     if discounts:
         max_discounts_per_run = 3
+        # Случайно перемешиваем скидки, чтобы VK Play и Steam чередовались
+        random.shuffle(discounts)
         to_post_discounts = discounts[:max_discounts_per_run]
+        
         for game in to_post_discounts:
             send_to_telegram(game)
             time.sleep(2)

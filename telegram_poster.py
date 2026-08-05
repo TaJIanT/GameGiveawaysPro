@@ -142,42 +142,43 @@ def main():
     api = GameAPI(usegamerpower=True)
     nm = NotificationManager(parent=None)
     
-    # 1. Получаем бесплатные игры
-    free_games = []
-    try: free_games.extend(api.fetch_cheapshark_free(12))
+    # --- 1. БЕСПЛАТНЫЕ ИГРЫ ---
+    raw_free = []
+    try: raw_free.extend(api.fetch_cheapshark_free(12))
     except: pass
-    try: free_games.extend(api.fetch_gamerpower_pc(15))
+    try: raw_free.extend(api.fetch_gamerpower_pc(15))
     except: pass
-    try: free_games.extend(api.fetch_gamerpower_loot(15))
+    try: raw_free.extend(api.fetch_gamerpower_loot(15))
     except: pass
     
-    free_games = [g for g in free_games if str(g.get("price", "")).strip().upper() == "FREE"]
+    free_games = [g for g in raw_free if str(g.get("price", "")).strip().upper() == "FREE"]
+    print(f"📡 API вернуло бесплатных игр: {len(free_games)}")
     new_freebies = get_unseen_items(nm, free_games)
+    print(f"🧠 После кэша осталось новых (бесплатных): {len(new_freebies)}")
 
-    # 2. Получаем скидки (например, со скидкой от 70% и до $15)
+    # --- 2. СКИДКИ ---
     discounts = []
     try:
+        # Для теста оставляем мягкие настройки скидок
         raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)
+        print(f"📡 API вернуло скидок: {len(raw_discounts)}")
         discounts = get_unseen_items(nm, raw_discounts)
+        print(f"🧠 После кэша осталось новых (скидок): {len(discounts)}")
     except Exception as e:
-        print(f"Ошибка получения скидок: {e}")
+        print(f"❌ Ошибка получения скидок: {e}")
 
-    # 3. Публикация
+    # --- 3. ПУБЛИКАЦИЯ ---
     total_posted = 0
 
-    # Сначала всегда постим бесплатные игры
     if new_freebies:
-        print(f"🎁 Найдено новых бесплатных игр: {len(new_freebies)}")
         for game in new_freebies:
             send_to_telegram(game)
             time.sleep(2)
             total_posted += 1
 
-    # Затем постим не более 3 лучших скидок за запуск, чтобы не спамить в канал
     if discounts:
         max_discounts_per_run = 3
         to_post_discounts = discounts[:max_discounts_per_run]
-        print(f"🏷️ Найдено новых скидок: {len(discounts)}. Постим {len(to_post_discounts)} шт.")
         for game in to_post_discounts:
             send_to_telegram(game)
             time.sleep(2)

@@ -25,9 +25,10 @@ class GameAPI:
         self.usegamerpower = bool(value)
 
     def fetch_cheapshark_free(self, limit=20):
-        params = {"storeID": STORE_IDS, "upperPrice": 2.0, "sortBy": "Savings", "pageSize": 60}
+        # Собираем URL вручную, чтобы запятые не превращались в %2C
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice=2.0&sortBy=Savings&pageSize=60"
         try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=10)
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -63,9 +64,10 @@ class GameAPI:
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        params = {"storeID": STORE_IDS, "upperPrice": max_price, "sortBy": "Savings", "pageSize": 60, "onSale": 1}
+        # Собираем URL вручную, чтобы запятые не превращались в %2C
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice={max_price}&sortBy=Savings&pageSize=60&onSale=1"
         try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=10)
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -108,7 +110,7 @@ class GameAPI:
     def fetch_gamerpower_pc(self, limit=15):
         params = {"platform": "pc", "type": "game", "sort-by": "date"}
         try:
-            r = self.session.get(GAMERPOWER_API, params=params, timeout=10)
+            r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -152,7 +154,7 @@ class GameAPI:
     def fetch_gamerpower_loot(self, limit=15):
         params = {"type": "loot", "sort-by": "date"}
         try:
-            r = self.session.get(GAMERPOWER_API, params=params, timeout=10)
+            r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -189,4 +191,3 @@ class GameAPI:
 
     def store_name(self, storeid):
         return {"1": "Steam", "2": "GamersGate", "3": "GreenManGaming", "7": "GOG", "25": "Epic Games"}.get(storeid, "Store")
-        

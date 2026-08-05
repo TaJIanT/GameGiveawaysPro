@@ -10,7 +10,7 @@ GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
 
-# Добавлены новые магазины: 11 (Humble Bundle), 15 (Fanatical), 35 (IndieGala)
+# Разрешенные магазины: Steam(1), GamersGate(2), GMG(3), GOG(7), Humble(11), Fanatical(15), Epic(25), IndieGala(35)
 STORE_IDS = "1,3,7,11,15,25,35" 
 ALLOWED_STORES = ["1", "3", "7", "11", "15", "25", "35"]
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
@@ -19,7 +19,6 @@ class GameAPI:
     def __init__(self, usegamerpower=True):
         self.usegamerpower = usegamerpower
         self.session = requests.Session()
-        # Маскируемся под браузер Chrome
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json"
@@ -53,7 +52,7 @@ class GameAPI:
                 r2.raise_for_status()
                 return r2.json()
             except Exception as e2:
-                print(f"❌ Ошибка CheapShark: не удалось пробиться даже через прокси.")
+                print(f"❌ Ошибка CheapShark: не удалось пробиться через прокси.")
                 return []
 
     def fetch_cheapshark_free(self, limit=20):
@@ -232,14 +231,11 @@ class GameAPI:
             return []
 
         games = []
-        # В VK Play список игр лежит в ключе "results"
         items = data.get("results", [])
         
         for item in items:
             try:
                 title = item.get("name", "Неизвестная игра")
-                
-                # Цены лежат внутри словаря cost_info
                 cost_info = item.get("cost_info", {})
                 saleprice = float(cost_info.get("actual_cost", 0))
                 normalprice = float(cost_info.get("original_cost", 0))
@@ -281,8 +277,45 @@ class GameAPI:
                 
         return games
 
+    def fetch_roblox_loot(self, limit=10):
+        params = {"platform": "roblox", "sort-by": "date"}
+        try:
+            r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Ошибка GamerPower (Roblox): {e}")
+            return []
+
+        games = []
+        for item in data[:limit]:
+            if item.get("status") == "Ended": continue
+            
+            worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
+            worth_val = float(worth_str) if worth_str else 0.0
+
+            games.append({
+                "id": f"gp-roblox-{item.get('id', '')}",
+                "title": item.get("title", ""),
+                "platform": "Roblox",
+                "platformkey": "roblox",
+                "genre": "Roblox Халява",
+                "developer": "Roblox",
+                "description": (item.get("description", "") or "")[:220],
+                "worth": worth_val,
+                "price": "FREE",
+                "period": item.get("endDate") or "TBD",
+                "image": item.get("image") or PLACEHOLDER_IMG,
+                "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
+                "hot": item.get("status") == "Active",
+                "ratingscore": 9.0,
+                "source": "Roblox Promo",
+                "tags": ["Roblox", "Loot"],
+                "end_at": item.get("endDate")
+            })
+        return games
+
     def store_name(self, storeid):
-        # ОБНОВЛЕННЫЙ СЛОВАРЬ ИМЕН
         return {
             "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
             "7": "GOG", "11": "Humble Bundle", "15": "Fanatical", 

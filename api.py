@@ -10,7 +10,7 @@ GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
 
-# ДОБАВЛЕНЫ НОВЫЕ МАГАЗИНЫ: 11 (Humble Bundle), 15 (Fanatical), 35 (IndieGala)
+# Добавлены новые магазины: 11 (Humble Bundle), 15 (Fanatical), 35 (IndieGala)
 STORE_IDS = "1,3,7,11,15,25,35" 
 ALLOWED_STORES = ["1", "3", "7", "11", "15", "25", "35"]
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
@@ -19,6 +19,7 @@ class GameAPI:
     def __init__(self, usegamerpower=True):
         self.usegamerpower = usegamerpower
         self.session = requests.Session()
+        # Маскируемся под браузер Chrome
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json"
@@ -220,6 +221,66 @@ class GameAPI:
             })
         return games
 
+    def fetch_vkplay_discounts(self, limit=10, min_savings=50.0):
+        url = "https://api.vkplay.ru/play/v2/catalog/?sale=1&page=1"
+        try:
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Ошибка VK Play: {e}")
+            return []
+
+        games = []
+        # В VK Play список игр лежит в ключе "results"
+        items = data.get("results", [])
+        
+        for item in items:
+            try:
+                title = item.get("name", "Неизвестная игра")
+                
+                # Цены лежат внутри словаря cost_info
+                cost_info = item.get("cost_info", {})
+                saleprice = float(cost_info.get("actual_cost", 0))
+                normalprice = float(cost_info.get("original_cost", 0))
+                savings = float(cost_info.get("discount", 0))
+                
+                if saleprice <= 0 or normalprice <= 0:
+                    continue
+                    
+                if savings < min_savings: 
+                    continue
+
+                slug = item.get("slug", "")
+                link = f"https://vkplay.ru/play/game/{slug}/"
+
+                games.append({
+                    "id": f"vkplay-{item.get('id', '')}",
+                    "title": title,
+                    "platform": "VK Play",
+                    "platformkey": "vkplay",
+                    "genre": "Скидка",
+                    "developer": "VK Play",
+                    "description": f"Было {normalprice:.0f}₽  стало {saleprice:.0f}₽ ({savings:.0f}%).",
+                    "worth": normalprice,
+                    "price": f"{saleprice:.0f}₽ (-{savings:.0f}%)",
+                    "period": "TBD",
+                    "image": item.get("picture_horizontal") or PLACEHOLDER_IMG,
+                    "link": link,
+                    "hot": True,
+                    "ratingscore": float(item.get("avg_rating", 0)),
+                    "source": "VK Play",
+                    "tags": ["Discount", "VK Play"],
+                    "end_at": cost_info.get("date_end")
+                })
+            except Exception:
+                continue
+                
+            if len(games) >= limit: 
+                break
+                
+        return games
+
     def store_name(self, storeid):
         # ОБНОВЛЕННЫЙ СЛОВАРЬ ИМЕН
         return {
@@ -227,3 +288,4 @@ class GameAPI:
             "7": "GOG", "11": "Humble Bundle", "15": "Fanatical", 
             "25": "Epic Games", "35": "IndieGala"
         }.get(storeid, "Store")
+        

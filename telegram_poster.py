@@ -31,7 +31,7 @@ HEADERS_DISCOUNT = [
 # Заголовки специально для ROBLOX
 HEADERS_ROBLOX = [
     "🟥 ROBLOX ХАЛЯВА",
-    "🎁 СВЕЖИЙ ЛУТ В ROBLOX",
+    "🎁 СВЕЖИЙ ЛУТ И КОДЫ ROBLOX",
     "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX",
     "🎮 БЕСПЛАТНО ДЛЯ ROBLOX"
 ]
@@ -181,15 +181,11 @@ def main():
     roblox_items = []
     try:
         raw_roblox = api.fetch_roblox_loot(limit=10)
-        print(f"📡 API вернуло раздач Roblox: {len(raw_roblox)}")
+        print(f"📡 API вернуло раздач и кодов Roblox: {len(raw_roblox)}")
         roblox_items = get_unseen_items(nm, raw_roblox)
         print(f"🧠 После кэша осталось новых (Roblox): {len(roblox_items)}")
     except Exception as e:
         print(f"❌ Ошибка получения Roblox: {e}")
-
-    # --- ПАУЗА 10 СЕКУНД (Защита от блокировки прокси) ---
-    print("⏳ Ожидание 10 секунд перед запросом скидок (охлаждаем прокси)...")
-    time.sleep(10)
 
     # --- 3. СКИДКИ ---
     discounts = []

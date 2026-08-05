@@ -157,7 +157,7 @@ def main():
     # 2. Получаем скидки (например, со скидкой от 70% и до $15)
     discounts = []
     try:
-        raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=15.0, min_savings=70.0)
+        raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)
         discounts = get_unseen_items(nm, raw_discounts)
     except Exception as e:
         print(f"Ошибка получения скидок: {e}")

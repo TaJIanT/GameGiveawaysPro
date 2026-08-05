@@ -98,7 +98,7 @@ class GameAPI:
     def fetch_gamerpower_pc(self, limit=15):
         params = {"platform": "pc", "type": "game", "sort-by": "date"}
         try:
-            r = self.session.get(GAMERPOWER_API, params=params, timeout=3)
+            r = self.session.get(GAMERPOWER_API, params=params, timeout=10)
             data = r.json()
         except: return []
 

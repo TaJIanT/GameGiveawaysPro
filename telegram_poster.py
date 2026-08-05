@@ -190,14 +190,14 @@ def main():
     # --- 3. СКИДКИ ---
     discounts = []
     try:
-        raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)
+        raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=5.0)
         print(f"📡 API вернуло скидок (CheapShark): {len(raw_discounts)}")
         discounts.extend(get_unseen_items(nm, raw_discounts))
     except Exception as e:
         print(f"❌ Ошибка получения скидок CheapShark: {e}")
 
     try:
-        vk_discounts = api.fetch_vkplay_discounts(limit=10, min_savings=10.0)
+        vk_discounts = api.fetch_vkplay_discounts(limit=10, min_savings=5.0)
         print(f"📡 API вернуло скидок (VK Play): {len(vk_discounts)}")
         discounts.extend(get_unseen_items(nm, vk_discounts))
     except Exception as e:

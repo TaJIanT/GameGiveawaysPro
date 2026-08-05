@@ -28,6 +28,14 @@ HEADERS_DISCOUNT = [
     "💸 ХОРОШАЯ ЦЕНА"
 ]
 
+# Заголовки специально для ROBLOX
+HEADERS_ROBLOX = [
+    "🟥 ROBLOX ХАЛЯВА",
+    "🎁 СВЕЖИЙ ЛУТ В ROBLOX",
+    "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX",
+    "🎮 БЕСПЛАТНО ДЛЯ ROBLOX"
+]
+
 PRICE_PREFIXES = ["💸 Прайс:", "💰 Цена вопроса:", "💳 Стоило:"]
 DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "📜 Сюжет:", "💡 Спойлер:"]
 
@@ -49,6 +57,7 @@ BTN_PROMO = [
 def send_to_telegram(game):
     title = game.get("title", "Неизвестная игра")
     platform = game.get("platform", "PC")
+    platform_key = game.get("platformkey", "").lower()
     worth = float(game.get("worth", 0) or 0)
     price_raw = str(game.get("price", "FREE")).strip()
     link = game.get("link", "")
@@ -56,14 +65,22 @@ def send_to_telegram(game):
     desc = game.get("description", "")
     
     is_free = price_raw.upper() == "FREE"
-    hashtag_plat = platform.replace(" ", "").replace("-", "")
+    is_roblox = platform_key == "roblox" or "roblox" in platform.lower()
+    
+    hashtag_plat = platform.replace(" ", "").replace("-", "").replace("®", "").replace("™", "")
     
     if desc:
         desc = desc.replace("<br>", "").replace("\n", " ")
         if len(desc) > 160:
             desc = desc[:157] + "..."
             
-    header = random.choice(HEADERS_FREE if is_free else HEADERS_DISCOUNT)
+    if is_roblox:
+        header = random.choice(HEADERS_ROBLOX)
+    elif is_free:
+        header = random.choice(HEADERS_FREE)
+    else:
+        header = random.choice(HEADERS_DISCOUNT)
+
     price_pref = random.choice(PRICE_PREFIXES)
     desc_pref = random.choice(DESC_PREFIXES)
     btn_game_text = random.choice(BTN_GET_GAME)
@@ -78,13 +95,18 @@ def send_to_telegram(game):
         else:
             caption += f"{price_pref} <b>100% Бесплатно!</b>\n"
     else:
-        # Форматирование для скидки
         caption += f"🏷️ <b>Цена:</b> {price_raw}\n"
         
     if desc:
         caption += f"\n{desc_pref} <i>{desc}</i>\n"
         
-    tag_type = "#раздача #freegames" if is_free else "#скидки #deals"
+    if is_roblox:
+        tag_type = "#roblox #роблокс #халява"
+    elif is_free:
+        tag_type = "#раздача #freegames"
+    else:
+        tag_type = "#скидки #deals"
+
     caption += f"\n{tag_type} #{hashtag_plat}"
 
     reply_markup = {
@@ -121,7 +143,6 @@ def send_to_telegram(game):
         print(f"❌ Ошибка отправки: {e}")
 
 def get_unseen_items(nm, games):
-    """Универсальная фильтрация новых игр (бесплатных и скидок)"""
     new_items = []
     now = nm._now_ts()
     for g in games or []:
@@ -138,11 +159,11 @@ def main():
         print("❌ ОШИБКА: Секреты не найдены!")
         sys.exit(1)
 
-    print("🤖 Запуск проверки раздач и скидок...")
+    print("🤖 Запуск проверки раздач, скидок и Roblox...")
     api = GameAPI(usegamerpower=True)
     nm = NotificationManager(parent=None)
     
-    # --- 1. БЕСПЛАТНЫЕ ИГРЫ ---
+    # --- 1. БЕСПЛАТНЫЕ ИГРЫ ДЛЯ ПК ---
     raw_free = []
     try: raw_free.extend(api.fetch_cheapshark_free(15))
     except: pass
@@ -152,14 +173,22 @@ def main():
     except: pass
     
     free_games = [g for g in raw_free if str(g.get("price", "")).strip().upper() == "FREE"]
-    print(f"📡 API вернуло бесплатных игр: {len(free_games)}")
+    print(f"📡 API вернуло бесплатных ПК-игр: {len(free_games)}")
     new_freebies = get_unseen_items(nm, free_games)
     print(f"🧠 После кэша осталось новых (бесплатных): {len(new_freebies)}")
 
-    # --- 2. СКИДКИ ---
+    # --- 2. ROBLOX ХАЛЯВА ---
+    roblox_items = []
+    try:
+        raw_roblox = api.fetch_roblox_loot(limit=10)
+        print(f"📡 API вернуло раздач Roblox: {len(raw_roblox)}")
+        roblox_items = get_unseen_items(nm, raw_roblox)
+        print(f"🧠 После кэша осталось новых (Roblox): {len(roblox_items)}")
+    except Exception as e:
+        print(f"❌ Ошибка получения Roblox: {e}")
+
+    # --- 3. СКИДКИ ---
     discounts = []
-    
-    # Скидки с мировых площадок (CheapShark)
     try:
         raw_discounts = api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)
         print(f"📡 API вернуло скидок (CheapShark): {len(raw_discounts)}")
@@ -167,7 +196,6 @@ def main():
     except Exception as e:
         print(f"❌ Ошибка получения скидок CheapShark: {e}")
 
-    # Скидки с VK Play
     try:
         vk_discounts = api.fetch_vkplay_discounts(limit=10, min_savings=10.0)
         print(f"📡 API вернуло скидок (VK Play): {len(vk_discounts)}")
@@ -177,18 +205,26 @@ def main():
         
     print(f"🧠 После кэша осталось новых (скидок всего): {len(discounts)}")
 
-    # --- 3. ПУБЛИКАЦИЯ ---
+    # --- 4. ПУБЛИКАЦИЯ ---
     total_posted = 0
 
+    # Сначала всегда постим бесплатные ПК-игры
     if new_freebies:
         for game in new_freebies:
             send_to_telegram(game)
             time.sleep(2)
             total_posted += 1
 
+    # Постим новые штуки для Roblox
+    if roblox_items:
+        for game in roblox_items:
+            send_to_telegram(game)
+            time.sleep(2)
+            total_posted += 1
+
+    # Постим лучшие скидки (не более 3 штук за один раз)
     if discounts:
         max_discounts_per_run = 3
-        # Случайно перемешиваем скидки, чтобы VK Play и Steam чередовались
         random.shuffle(discounts)
         to_post_discounts = discounts[:max_discounts_per_run]
         
@@ -198,7 +234,7 @@ def main():
             total_posted += 1
 
     if total_posted == 0:
-        print("🤷‍♂️ Новых раздач и скидок пока нет.")
+        print("🤷‍♂️ Новых раздач, скидок и лута Roblox пока нет.")
 
 if __name__ == '__main__':
     main()

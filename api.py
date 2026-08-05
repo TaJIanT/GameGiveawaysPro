@@ -10,7 +10,6 @@ GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
 
-# Разрешенные магазины: Steam(1), GamersGate(2), GMG(3), GOG(7), Humble(11), Fanatical(15), Epic(25), IndieGala(35)
 STORE_IDS = "1,3,7,11,15,25,35" 
 ALLOWED_STORES = ["1", "3", "7", "11", "15", "25", "35"]
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
@@ -27,37 +26,40 @@ class GameAPI:
     def set_use_gamerpower(self, value):
         self.usegamerpower = bool(value)
 
-    def _get_cheapshark(self, params):
+    def _get_cheapshark(self, target_url):
+        # 1. Сначала пробуем прямой запрос
         try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
-            r.raise_for_status()
-            return r.json()
-        except Exception as e:
-            print(f"⚠️ Прямой запрос к CheapShark заблокирован: {e}")
-            print("🔄 Пробуем обойти блокировку IP через прокси-сервер...")
+            r = self.session.get(target_url, timeout=REQUEST_TIMEOUT)
+            if r.status_code == 200:
+                return r.json()
+        except:
+            pass
 
-        query_string = urllib.parse.urlencode(params)
-        target_url = f"{CHEAPSHARK_API}?{query_string}"
+        print("🔄 Прямой запрос отклонен, переключаемся на пул прокси-серверов...")
         
-        try:
-            proxy1 = f"https://api.allorigins.win/raw?url={urllib.parse.quote(target_url)}"
-            r1 = self.session.get(proxy1, timeout=15)
-            r1.raise_for_status()
-            return r1.json()
-        except Exception as e1:
-            print(f"⚠️ Ошибка первого прокси: {e1}")
+        # 2. Пул быстрых прокси для обхода блокироки IP
+        encoded_url = urllib.parse.quote(target_url)
+        proxies = [
+            f"https://corsproxy.io/?{encoded_url}",
+            f"https://api.codetabs.com/v1/proxy/?quest={encoded_url}",
+            f"https://api.allorigins.win/raw?url={encoded_url}"
+        ]
+        
+        for proxy_url in proxies:
             try:
-                proxy2 = f"https://api.codetabs.com/v1/proxy/?quest={urllib.parse.quote(target_url)}"
-                r2 = self.session.get(proxy2, timeout=15)
-                r2.raise_for_status()
-                return r2.json()
-            except Exception as e2:
-                print(f"❌ Ошибка CheapShark: не удалось пробиться через прокси.")
-                return []
+                r = self.session.get(proxy_url, timeout=12)
+                if r.status_code == 200:
+                    return r.json()
+            except Exception:
+                continue
+                
+        print(f"❌ Ошибка CheapShark: все 3 прокси-сервера недоступны.")
+        return []
 
     def fetch_cheapshark_free(self, limit=20):
-        params = {"upperPrice": 0, "sortBy": "Savings", "pageSize": 60}
-        data = self._get_cheapshark(params)
+        # Собираем прямую ссылку
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice=2&sortBy=Savings&pageSize=60"
+        data = self._get_cheapshark(url)
 
         games = []
         for deal in data:
@@ -95,8 +97,8 @@ class GameAPI:
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        params = {"upperPrice": int(max_price), "sortBy": "Savings", "pageSize": 60, "onSale": 1}
-        data = self._get_cheapshark(params)
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice={int(max_price)}&sortBy=Savings&pageSize=60&onSale=1"
+        data = self._get_cheapshark(url)
 
         games = []
         for deal in data:
@@ -278,7 +280,8 @@ class GameAPI:
         return games
 
     def fetch_roblox_loot(self, limit=10):
-        params = {"platform": "roblox", "sort-by": "date"}
+        # Скачиваем весь лут и вручную ищем в нем "roblox"
+        params = {"type": "loot", "sort-by": "date"}
         try:
             r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
@@ -288,9 +291,16 @@ class GameAPI:
             return []
 
         games = []
-        for item in data[:limit]:
+        for item in data:
             if item.get("status") == "Ended": continue
             
+            title = item.get("title", "").lower()
+            desc = item.get("description", "").lower()
+            
+            # Фильтр: берем только те посты, где есть слово "roblox"
+            if "roblox" not in title and "roblox" not in desc:
+                continue
+
             worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
             worth_val = float(worth_str) if worth_str else 0.0
 
@@ -313,6 +323,9 @@ class GameAPI:
                 "tags": ["Roblox", "Loot"],
                 "end_at": item.get("endDate")
             })
+            if len(games) >= limit: 
+                break
+                
         return games
 
     def store_name(self, storeid):

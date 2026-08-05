@@ -187,6 +187,10 @@ def main():
     except Exception as e:
         print(f"❌ Ошибка получения Roblox: {e}")
 
+    # --- ПАУЗА 10 СЕКУНД (Защита от блокировки прокси) ---
+    print("⏳ Ожидание 10 секунд перед запросом скидок (охлаждаем прокси)...")
+    time.sleep(10)
+
     # --- 3. СКИДКИ ---
     discounts = []
     try:
@@ -208,21 +212,18 @@ def main():
     # --- 4. ПУБЛИКАЦИЯ ---
     total_posted = 0
 
-    # Сначала всегда постим бесплатные ПК-игры
     if new_freebies:
         for game in new_freebies:
             send_to_telegram(game)
             time.sleep(2)
             total_posted += 1
 
-    # Постим новые штуки для Roblox
     if roblox_items:
         for game in roblox_items:
             send_to_telegram(game)
             time.sleep(2)
             total_posted += 1
 
-    # Постим лучшие скидки (не более 3 штук за один раз)
     if discounts:
         max_discounts_per_run = 3
         random.shuffle(discounts)

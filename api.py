@@ -5,7 +5,6 @@ import os
 
 CHEAPSHARK_API = "https://www.cheapshark.com/api/1.0/deals"
 GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
-ROBLOX_CODES_API = "https://raw.githubusercontent.com/blox-services/roblox-promocodes/main/codes.json"
 
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
@@ -29,9 +28,10 @@ class GameAPI:
         self.usegamerpower = bool(value)
 
     def fetch_cheapshark_free(self, limit=20):
-        params = {"storeID": STORE_IDS, "upperPrice": 2.0, "sortBy": "Savings", "pageSize": 60}
+        # Собираем ссылку вручную, чтобы избежать кодирования запятых в %2C
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice=2.0&sortBy=Savings&pageSize=60"
         try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -67,9 +67,10 @@ class GameAPI:
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        params = {"storeID": STORE_IDS, "upperPrice": max_price, "sortBy": "Savings", "pageSize": 60, "onSale": 1}
+        # Собираем ссылку вручную, чтобы избежать кодирования запятых в %2C
+        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice={max_price}&sortBy=Savings&pageSize=60&onSale=1"
         try:
-            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -249,75 +250,49 @@ class GameAPI:
         return games
 
     def fetch_roblox_loot(self, limit=10):
-        # 1. Поиск по GamerPower
         params = {"type": "loot", "sort-by": "date"}
-        games = []
         try:
             r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
-            if r.status_code == 200:
-                data = r.json()
-                for item in data:
-                    if item.get("status") == "Ended": continue
-                    title = item.get("title", "").lower()
-                    desc = item.get("description", "").lower()
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Ошибка GamerPower (Roblox): {e}")
+            return []
+
+        games = []
+        for item in data:
+            if item.get("status") == "Ended": continue
+            
+            title = item.get("title", "").lower()
+            desc = item.get("description", "").lower()
+            
+            if "roblox" in title or "roblox" in desc:
+                worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
+                worth_val = float(worth_str) if worth_str else 0.0
+
+                games.append({
+                    "id": f"gp-roblox-{item.get('id', '')}",
+                    "title": item.get("title", ""),
+                    "platform": "Roblox",
+                    "platformkey": "roblox",
+                    "genre": "Roblox Халява",
+                    "developer": "Roblox",
+                    "description": (item.get("description", "") or "")[:220],
+                    "worth": worth_val,
+                    "price": "FREE",
+                    "period": item.get("endDate") or "TBD",
+                    "image": item.get("image") or PLACEHOLDER_IMG,
+                    "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
+                    "hot": True,
+                    "ratingscore": 9.0,
+                    "source": "Roblox Promo",
+                    "tags": ["Roblox", "Loot"],
+                    "end_at": item.get("endDate")
+                })
+                if len(games) >= limit: 
+                    break
                     
-                    if "roblox" in title or "roblox" in desc:
-                        worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
-                        worth_val = float(worth_str) if worth_str else 0.0
-
-                        games.append({
-                            "id": f"gp-roblox-{item.get('id', '')}",
-                            "title": item.get("title", ""),
-                            "platform": "Roblox",
-                            "platformkey": "roblox",
-                            "genre": "Roblox Халява",
-                            "developer": "Roblox",
-                            "description": (item.get("description", "") or "")[:220],
-                            "worth": worth_val,
-                            "price": "FREE",
-                            "period": item.get("endDate") or "TBD",
-                            "image": item.get("image") or PLACEHOLDER_IMG,
-                            "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
-                            "hot": True,
-                            "ratingscore": 9.0,
-                            "source": "Roblox Promo",
-                            "tags": ["Roblox", "Loot"],
-                            "end_at": item.get("endDate")
-                        })
-        except Exception as e:
-            print(f"❌ Ошибка GamerPower Roblox: {e}")
-
-        # 2. Дополнительный источник: Рабочие глобальные промокоды Roblox
-        try:
-            r_codes = self.session.get(ROBLOX_CODES_API, timeout=REQUEST_TIMEOUT)
-            if r_codes.status_code == 200:
-                codes_data = r_codes.json()
-                for c in codes_data.get("active_codes", [])[:5]:
-                    code_str = c.get("code", "")
-                    reward = c.get("reward", "Бесплатный предмет")
-                    games.append({
-                        "id": f"roblox-code-{code_str}",
-                        "title": f"Промокод Roblox: {code_str}",
-                        "platform": "Roblox",
-                        "platformkey": "roblox",
-                        "genre": "Промокод",
-                        "developer": "Roblox",
-                        "description": f"🔑 Промокод: {code_str}\n🎁 Награда: {reward}\nАктивировать на roblox.com/redeem",
-                        "worth": 0.0,
-                        "price": "FREE",
-                        "period": "Активен",
-                        "image": "https://images.rbxcdn.com/712361d8286758feb354b65ac54a7631.png",
-                        "link": "https://www.roblox.com/redeem",
-                        "hot": True,
-                        "ratingscore": 10.0,
-                        "source": "Roblox Official",
-                        "tags": ["Roblox", "Code"],
-                        "end_at": None
-                    })
-        except Exception as e:
-            print(f"❌ Ошибка парсинга промокодов Roblox: {e}")
-
-        return games[:limit]
+        return games
 
     def store_name(self, storeid):
         return {

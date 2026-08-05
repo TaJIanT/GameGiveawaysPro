@@ -9,7 +9,10 @@ GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
 
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
-STORE_IDS = "1,3,7,25"  # Steam, GMG, GOG, Epic
+
+# ДОБАВЛЕНЫ НОВЫЕ МАГАЗИНЫ: 11 (Humble Bundle), 15 (Fanatical), 35 (IndieGala)
+STORE_IDS = "1,3,7,11,15,25,35" 
+ALLOWED_STORES = ["1", "3", "7", "11", "15", "25", "35"]
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
 
 class GameAPI:
@@ -25,7 +28,6 @@ class GameAPI:
         self.usegamerpower = bool(value)
 
     def _get_cheapshark(self, params):
-        # 1. Сначала пробуем прямой запрос (он сработает на вашем домашнем ПК)
         try:
             r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
             r.raise_for_status()
@@ -34,11 +36,9 @@ class GameAPI:
             print(f"⚠️ Прямой запрос к CheapShark заблокирован: {e}")
             print("🔄 Пробуем обойти блокировку IP через прокси-сервер...")
 
-        # 2. Если нас заблокировали (как на GitHub), идем через публичные прокси
         query_string = urllib.parse.urlencode(params)
         target_url = f"{CHEAPSHARK_API}?{query_string}"
         
-        # Прокси №1: AllOrigins
         try:
             proxy1 = f"https://api.allorigins.win/raw?url={urllib.parse.quote(target_url)}"
             r1 = self.session.get(proxy1, timeout=15)
@@ -46,8 +46,6 @@ class GameAPI:
             return r1.json()
         except Exception as e1:
             print(f"⚠️ Ошибка первого прокси: {e1}")
-            
-            # Прокси №2: CodeTabs (Запасной)
             try:
                 proxy2 = f"https://api.codetabs.com/v1/proxy/?quest={urllib.parse.quote(target_url)}"
                 r2 = self.session.get(proxy2, timeout=15)
@@ -58,16 +56,21 @@ class GameAPI:
                 return []
 
     def fetch_cheapshark_free(self, limit=20):
-        params = {"storeID": STORE_IDS, "upperPrice": 2.0, "sortBy": "Savings", "pageSize": 60}
+        params = {"upperPrice": 0, "sortBy": "Savings", "pageSize": 60}
         data = self._get_cheapshark(params)
 
         games = []
-        for deal in data[:limit]:
+        for deal in data:
+            store_id = str(deal.get("storeID", 0))
+            if store_id not in ALLOWED_STORES:
+                continue
+
             saleprice = float(deal.get("salePrice", 0) or 0)
             savings = float(deal.get("savings", 0) or 0)
-            if saleprice > 0 or savings < 95: continue
+            if saleprice > 0 and savings < 95: 
+                continue
 
-            storename = self.store_name(str(deal.get("storeID", 0)))
+            storename = self.store_name(store_id)
             games.append({
                 "id": f"cs-free-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -87,23 +90,31 @@ class GameAPI:
                 "tags": ["Deal", storename],
                 "end_at": None,
             })
+            if len(games) >= limit: 
+                break
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        params = {"storeID": STORE_IDS, "upperPrice": max_price, "sortBy": "Savings", "pageSize": 60, "onSale": 1}
+        params = {"upperPrice": int(max_price), "sortBy": "Savings", "pageSize": 60, "onSale": 1}
         data = self._get_cheapshark(params)
 
         games = []
         for deal in data:
+            store_id = str(deal.get("storeID", 0))
+            if store_id not in ALLOWED_STORES:
+                continue
+
             try:
                 saleprice = float(deal.get("salePrice", 0) or 0)
                 normalprice = float(deal.get("normalPrice", 0) or 0)
                 savings = float(deal.get("savings", 0) or 0)
-            except Exception: continue
+            except Exception: 
+                continue
 
-            if saleprice <= 0 or savings < min_savings: continue
+            if saleprice <= 0 or savings < min_savings: 
+                continue
 
-            storename = self.store_name(str(deal.get("storeID", 0)))
+            storename = self.store_name(store_id)
             games.append({
                 "id": f"cs-disc-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -123,7 +134,8 @@ class GameAPI:
                 "tags": ["Discount", storename],
                 "end_at": None,
             })
-            if len(games) >= limit: break
+            if len(games) >= limit: 
+                break
         return games
 
     def fetch_gamerpower_pc(self, limit=15):
@@ -209,5 +221,9 @@ class GameAPI:
         return games
 
     def store_name(self, storeid):
-        return {"1": "Steam", "2": "GamersGate", "3": "GreenManGaming", "7": "GOG", "25": "Epic Games"}.get(storeid, "Store")
-        
+        # ОБНОВЛЕННЫЙ СЛОВАРЬ ИМЕН
+        return {
+            "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
+            "7": "GOG", "11": "Humble Bundle", "15": "Fanatical", 
+            "25": "Epic Games", "35": "IndieGala"
+        }.get(storeid, "Store")

@@ -2,16 +2,18 @@
 import requests
 import json
 import os
-import urllib.parse
 
 CHEAPSHARK_API = "https://www.cheapshark.com/api/1.0/deals"
 GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
+ROBLOX_CODES_API = "https://raw.githubusercontent.com/blox-services/roblox-promocodes/main/codes.json"
 
 REQUEST_TIMEOUT = 10
 CACHE_FILE = "gamescache.json"
 
-STORE_IDS = "1,3,7,11,15,25,35" 
-ALLOWED_STORES = ["1", "3", "7", "11", "15", "25", "35"]
+# Правильные ID магазинов в CheapShark: 
+# 1 (Steam), 3 (GMG), 7 (GOG), 11 (Humble Store), 25 (Epic Games), 31 (Fanatical)
+STORE_IDS = "1,3,7,11,25,31" 
+ALLOWED_STORES = ["1", "3", "7", "11", "25", "31"]
 PLACEHOLDER_IMG = "https://via.placeholder.com/320x220/118272/2c55e?text=GAME"
 
 class GameAPI:
@@ -26,53 +28,23 @@ class GameAPI:
     def set_use_gamerpower(self, value):
         self.usegamerpower = bool(value)
 
-    def _get_cheapshark(self, target_url):
-        # 1. Сначала пробуем прямой запрос
-        try:
-            r = self.session.get(target_url, timeout=REQUEST_TIMEOUT)
-            if r.status_code == 200:
-                return r.json()
-        except:
-            pass
-
-        print("🔄 Прямой запрос отклонен, переключаемся на пул прокси-серверов...")
-        
-        # 2. Пул быстрых прокси для обхода блокироки IP
-        encoded_url = urllib.parse.quote(target_url)
-        proxies = [
-            f"https://corsproxy.io/?{encoded_url}",
-            f"https://api.codetabs.com/v1/proxy/?quest={encoded_url}",
-            f"https://api.allorigins.win/raw?url={encoded_url}"
-        ]
-        
-        for proxy_url in proxies:
-            try:
-                r = self.session.get(proxy_url, timeout=12)
-                if r.status_code == 200:
-                    return r.json()
-            except Exception:
-                continue
-                
-        print(f"❌ Ошибка CheapShark: все 3 прокси-сервера недоступны.")
-        return []
-
     def fetch_cheapshark_free(self, limit=20):
-        # Собираем прямую ссылку
-        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice=2&sortBy=Savings&pageSize=60"
-        data = self._get_cheapshark(url)
+        params = {"storeID": STORE_IDS, "upperPrice": 2.0, "sortBy": "Savings", "pageSize": 60}
+        try:
+            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Ошибка CheapShark (Free): {e}")
+            return []
 
         games = []
-        for deal in data:
-            store_id = str(deal.get("storeID", 0))
-            if store_id not in ALLOWED_STORES:
-                continue
-
+        for deal in data[:limit]:
             saleprice = float(deal.get("salePrice", 0) or 0)
             savings = float(deal.get("savings", 0) or 0)
-            if saleprice > 0 and savings < 95: 
-                continue
+            if saleprice > 0 or savings < 95: continue
 
-            storename = self.store_name(store_id)
+            storename = self.store_name(str(deal.get("storeID", 0)))
             games.append({
                 "id": f"cs-free-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -92,31 +64,29 @@ class GameAPI:
                 "tags": ["Deal", storename],
                 "end_at": None,
             })
-            if len(games) >= limit: 
-                break
         return games
 
     def fetch_cheapshark_discounts(self, limit=40, max_price=15.0, min_savings=50.0):
-        url = f"{CHEAPSHARK_API}?storeID={STORE_IDS}&upperPrice={int(max_price)}&sortBy=Savings&pageSize=60&onSale=1"
-        data = self._get_cheapshark(url)
+        params = {"storeID": STORE_IDS, "upperPrice": max_price, "sortBy": "Savings", "pageSize": 60, "onSale": 1}
+        try:
+            r = self.session.get(CHEAPSHARK_API, params=params, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"❌ Ошибка CheapShark (Discounts): {e}")
+            return []
 
         games = []
         for deal in data:
-            store_id = str(deal.get("storeID", 0))
-            if store_id not in ALLOWED_STORES:
-                continue
-
             try:
                 saleprice = float(deal.get("salePrice", 0) or 0)
                 normalprice = float(deal.get("normalPrice", 0) or 0)
                 savings = float(deal.get("savings", 0) or 0)
-            except Exception: 
-                continue
+            except Exception: continue
 
-            if saleprice <= 0 or savings < min_savings: 
-                continue
+            if saleprice <= 0 or savings < min_savings: continue
 
-            storename = self.store_name(store_id)
+            storename = self.store_name(str(deal.get("storeID", 0)))
             games.append({
                 "id": f"cs-disc-{deal.get('dealID','')}",
                 "title": deal.get("title", "Game"),
@@ -136,8 +106,7 @@ class GameAPI:
                 "tags": ["Discount", storename],
                 "end_at": None,
             })
-            if len(games) >= limit: 
-                break
+            if len(games) >= limit: break
         return games
 
     def fetch_gamerpower_pc(self, limit=15):
@@ -280,58 +249,80 @@ class GameAPI:
         return games
 
     def fetch_roblox_loot(self, limit=10):
-        # Скачиваем весь лут и вручную ищем в нем "roblox"
+        # 1. Поиск по GamerPower
         params = {"type": "loot", "sort-by": "date"}
+        games = []
         try:
             r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
-            r.raise_for_status()
-            data = r.json()
+            if r.status_code == 200:
+                data = r.json()
+                for item in data:
+                    if item.get("status") == "Ended": continue
+                    title = item.get("title", "").lower()
+                    desc = item.get("description", "").lower()
+                    
+                    if "roblox" in title or "roblox" in desc:
+                        worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
+                        worth_val = float(worth_str) if worth_str else 0.0
+
+                        games.append({
+                            "id": f"gp-roblox-{item.get('id', '')}",
+                            "title": item.get("title", ""),
+                            "platform": "Roblox",
+                            "platformkey": "roblox",
+                            "genre": "Roblox Халява",
+                            "developer": "Roblox",
+                            "description": (item.get("description", "") or "")[:220],
+                            "worth": worth_val,
+                            "price": "FREE",
+                            "period": item.get("endDate") or "TBD",
+                            "image": item.get("image") or PLACEHOLDER_IMG,
+                            "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
+                            "hot": True,
+                            "ratingscore": 9.0,
+                            "source": "Roblox Promo",
+                            "tags": ["Roblox", "Loot"],
+                            "end_at": item.get("endDate")
+                        })
         except Exception as e:
-            print(f"❌ Ошибка GamerPower (Roblox): {e}")
-            return []
+            print(f"❌ Ошибка GamerPower Roblox: {e}")
 
-        games = []
-        for item in data:
-            if item.get("status") == "Ended": continue
-            
-            title = item.get("title", "").lower()
-            desc = item.get("description", "").lower()
-            
-            # Фильтр: берем только те посты, где есть слово "roblox"
-            if "roblox" not in title and "roblox" not in desc:
-                continue
+        # 2. Дополнительный источник: Рабочие глобальные промокоды Roblox
+        try:
+            r_codes = self.session.get(ROBLOX_CODES_API, timeout=REQUEST_TIMEOUT)
+            if r_codes.status_code == 200:
+                codes_data = r_codes.json()
+                for c in codes_data.get("active_codes", [])[:5]:
+                    code_str = c.get("code", "")
+                    reward = c.get("reward", "Бесплатный предмет")
+                    games.append({
+                        "id": f"roblox-code-{code_str}",
+                        "title": f"Промокод Roblox: {code_str}",
+                        "platform": "Roblox",
+                        "platformkey": "roblox",
+                        "genre": "Промокод",
+                        "developer": "Roblox",
+                        "description": f"🔑 Промокод: {code_str}\n🎁 Награда: {reward}\nАктивировать на roblox.com/redeem",
+                        "worth": 0.0,
+                        "price": "FREE",
+                        "period": "Активен",
+                        "image": "https://images.rbxcdn.com/712361d8286758feb354b65ac54a7631.png",
+                        "link": "https://www.roblox.com/redeem",
+                        "hot": True,
+                        "ratingscore": 10.0,
+                        "source": "Roblox Official",
+                        "tags": ["Roblox", "Code"],
+                        "end_at": None
+                    })
+        except Exception as e:
+            print(f"❌ Ошибка парсинга промокодов Roblox: {e}")
 
-            worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
-            worth_val = float(worth_str) if worth_str else 0.0
-
-            games.append({
-                "id": f"gp-roblox-{item.get('id', '')}",
-                "title": item.get("title", ""),
-                "platform": "Roblox",
-                "platformkey": "roblox",
-                "genre": "Roblox Халява",
-                "developer": "Roblox",
-                "description": (item.get("description", "") or "")[:220],
-                "worth": worth_val,
-                "price": "FREE",
-                "period": item.get("endDate") or "TBD",
-                "image": item.get("image") or PLACEHOLDER_IMG,
-                "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
-                "hot": item.get("status") == "Active",
-                "ratingscore": 9.0,
-                "source": "Roblox Promo",
-                "tags": ["Roblox", "Loot"],
-                "end_at": item.get("endDate")
-            })
-            if len(games) >= limit: 
-                break
-                
-        return games
+        return games[:limit]
 
     def store_name(self, storeid):
         return {
             "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
-            "7": "GOG", "11": "Humble Bundle", "15": "Fanatical", 
-            "25": "Epic Games", "35": "IndieGala"
+            "7": "GOG", "11": "Humble Store", "25": "Epic Games", 
+            "31": "Fanatical"
         }.get(storeid, "Store")
         

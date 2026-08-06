@@ -24,6 +24,15 @@ HEADERS_FREE = [
     "📦 ЩЕДРЫЙ ПОДАРОК ГЕЙМЕРУ"
 ]
 
+# Заголовки для КЛЮЧЕЙ И ЛУТА
+HEADERS_LOOT = [
+    "🔑 ХАЛЯВНЫЙ КЛЮЧ",
+    "📦 РАЗДАЧА ЛУТА И КЛЮЧЕЙ",
+    "🛠 СВЕЖИЙ СОФТ И ДОПОЛНЕНИЯ",
+    "💎 ПРЕМИУМ ЛУТ БЕСПЛАТНО",
+    "⚡️ ЗАБИРАЕМ КЛЮЧИ"
+]
+
 # Заголовки для СКИДОК
 HEADERS_DISCOUNT = [
     "📉 ЖАРКАЯ СКИДКА",
@@ -124,6 +133,9 @@ def send_to_telegram(game):
     elif platform_key == "mobile":
         header = random.choice(HEADERS_MOBILE)
         tag_type = "#mobile #мобильныеигры"
+    elif platform_key == "loot":
+        header = random.choice(HEADERS_LOOT)
+        tag_type = "#ключи #лут #loot"
     elif is_free:
         header = random.choice(HEADERS_FREE)
         tag_type = "#раздача #freegames"
@@ -194,73 +206,85 @@ def main():
         print("❌ ОШИБКА: Секреты не найдены!")
         sys.exit(1)
 
-    print("🤖 Запуск проверки раздач, скидок, мобилок и Roblox...")
+    print("🤖 Запуск проверки раздач, скидок, лута, мобилок и Roblox...")
     api = GameAPI(usegamerpower=True)
     nm = NotificationManager(parent=None)
     
     # --- 1. БЕСПЛАТНЫЕ ИГРЫ ДЛЯ ПК ---
-    raw_free = []
-    try: raw_free.extend(api.fetch_cheapshark_free(15))
+    raw_pc = []
+    try: raw_pc.extend(api.fetch_cheapshark_free(50))
     except: pass
-    try: raw_free.extend(api.fetch_gamerpower_pc(15))
-    except: pass
-    try: raw_free.extend(api.fetch_gamerpower_loot(15))
+    try: raw_pc.extend(api.fetch_gamerpower_pc(50))
     except: pass
     
-    free_games = [g for g in raw_free if str(g.get("price", "")).strip().upper() == "FREE" and "gacha" not in g.get("platformkey", "") and "mobile" not in g.get("platformkey", "")]
-    print(f"📡 API вернуло бесплатных ПК-игр: {len(free_games)}")
-    new_freebies = get_unseen_items(nm, free_games)
+    pc_free_games = [g for g in raw_pc if str(g.get("price", "")).strip().upper() == "FREE"]
+    print(f"📡 API вернуло бесплатных ПК-игр: {len(pc_free_games)}")
+    new_pc_freebies = get_unseen_items(nm, pc_free_games)
 
-    # --- 2. ROBLOX ХАЛЯВА ---
+    # --- 2. КЛЮЧИ И ЛУТ ---
+    raw_loot = []
+    try:
+        raw_loot.extend(api.fetch_gamerpower_loot(50))
+        print(f"📡 API вернуло ключей и лута: {len(raw_loot)}")
+    except: pass
+    new_loot = get_unseen_items(nm, raw_loot)
+
+    # --- 3. ROBLOX ХАЛЯВА ---
     roblox_items = []
     try:
-        raw_roblox = api.fetch_roblox_loot(limit=10)
+        raw_roblox = api.fetch_roblox_loot(limit=30)
         print(f"📡 API вернуло раздач Roblox: {len(raw_roblox)}")
         roblox_items = get_unseen_items(nm, raw_roblox)
     except: pass
 
-    # --- 3. ГАЧА И МОБИЛЬНЫЕ ПРОМОКОДЫ ---
+    # --- 4. ГАЧА И МОБИЛЬНЫЕ ПРОМОКОДЫ ---
     mobile_items = []
     try:
-        raw_mobile = api.fetch_gacha_mobile_loot(limit=10)
+        raw_mobile = api.fetch_gacha_mobile_loot(limit=30)
         print(f"📡 API вернуло Гача/Мобильных кодов: {len(raw_mobile)}")
         mobile_items = get_unseen_items(nm, raw_mobile)
     except: pass
 
-    # --- 4. СКИДКИ ---
+    # --- 5. СКИДКИ ---
     discounts = []
     try:
-        discounts.extend(get_unseen_items(nm, api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)))
-        discounts.extend(get_unseen_items(nm, api.fetch_vkplay_discounts(limit=10, min_savings=10.0)))
+        discounts.extend(get_unseen_items(nm, api.fetch_cheapshark_discounts(limit=100, max_price=60.0, min_savings=5.0)))
+        discounts.extend(get_unseen_items(nm, api.fetch_vkplay_discounts(limit=30, min_savings=5.0)))
         print(f"🧠 В кэше появилось новых скидок: {len(discounts)}")
     except: pass
 
-    # --- 5. ПУБЛИКАЦИЯ ---
+    # --- 6. ПУБЛИКАЦИЯ ---
     total_posted = 0
 
-    if new_freebies:
-        for game in new_freebies:
+    if new_pc_freebies:
+        for game in new_pc_freebies:
             send_to_telegram(game)
-            time.sleep(2)
+            time.sleep(3)
+            total_posted += 1
+
+    if new_loot:
+        for game in new_loot:
+            send_to_telegram(game)
+            time.sleep(3)
             total_posted += 1
 
     if roblox_items:
         for game in roblox_items:
             send_to_telegram(game)
-            time.sleep(2)
+            time.sleep(3)
             total_posted += 1
 
     if mobile_items:
         for game in mobile_items:
             send_to_telegram(game)
-            time.sleep(2)
+            time.sleep(3)
             total_posted += 1
 
     if discounts:
         random.shuffle(discounts)
-        for game in discounts[:3]:  # Не больше 3 постов скидок за раз
+        for game in discounts[:25]:  # Максимум 25 скидок за проход
             send_to_telegram(game)
-            time.sleep(2)
+            time.sleep(3)
             total_posted += 1
 
     if total_posted == 0:
@@ -268,3 +292,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

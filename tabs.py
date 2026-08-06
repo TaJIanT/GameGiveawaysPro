@@ -13,16 +13,19 @@ ACTIVE_BORDER = "#bffcff"
 ACTIVE_TEXT = "#06131a"
 TEXT = "#d6d9e6"
 
+# ДОБАВЛЕНЫ НОВЫЕ ВКЛАДКИ
 LABELS = [
     ("Все", "all"),
     ("Steam", "steam"),
     ("Epic", "epic"),
-    ("GOG", "gog"),
     ("Скидки", "deals"),
     ("Ключи", "loot"),
+    ("VK Play", "vkplay"),
+    ("Roblox", "roblox"),
+    ("Мобилки", "mobile")
 ]
 
-def create_tabs(parent):
+def create_tabs(parent, on_tab_change=None):
     # общий контейнер вкладок
     wrapper = ctk.CTkFrame(parent, fg_color="transparent")
     wrapper.pack(fill="both", expand=True, padx=20, pady=(6, 0))
@@ -63,6 +66,10 @@ def create_tabs(parent):
             else:
                 b.configure(fg_color=TAB_BG, hover_color=TAB_HOVER,
                             border_color=TAB_BORDER, text_color=TEXT)
+                            
+        # Передаем информацию о клике в main.py для подгрузки игр
+        if on_tab_change:
+            on_tab_change(key)
 
     # создаём кнопки и фреймы страниц
     for i, (text, key) in enumerate(LABELS):
@@ -88,6 +95,4 @@ def create_tabs(parent):
 
     show_tab("all")
 
-    # возвращаем:
-    # tabview -> здесь wrapper (чтобы main.py ничего не сломал и мог хранить ссылку)
     return wrapper, tab_frames

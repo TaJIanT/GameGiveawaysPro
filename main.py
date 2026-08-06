@@ -16,7 +16,7 @@ import threading
 from config import THEMES, APP_TITLE
 from api import GameAPI
 from header import create_header
-from tabs import create_tabs
+from tabs import create_tabs, LABELS
 from cards import create_game_card
 from tray_icon import TrayController
 from notifications import NotificationManager
@@ -49,7 +49,12 @@ class GameGiveawaysApp(ctk.CTk):
         self.configure(fg_color=THEMES["dark"]["bg"])
 
         self.api = GameAPI(usegamerpower=True)
-        self.games = {}
+        self.gp_var = ctk.IntVar(value=1)  # ВЕРНУЛИ ПЕРЕМЕННУЮ ДЛЯ ГАЛОЧКИ
+        
+        # Инициализируем хранилище для всех вкладок
+        self.games = {key: [] for _, key in LABELS}
+        self.loaded_tabs = {key: False for _, key in LABELS} # Флаги для "ленивой загрузки"
+        
         self._loading = False
 
         self.notification_manager = NotificationManager(parent=self)
@@ -67,7 +72,8 @@ class GameGiveawaysApp(ctk.CTk):
             self, self.refresh_games_async
         )
 
-        self.tabview, self.tab_frames = create_tabs(self)
+        # Передаем on_tab_changed для обработки кликов по вкладкам
+        self.tabview, self.tab_frames = create_tabs(self, on_tab_change=self.on_tab_changed)
 
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(
@@ -93,6 +99,7 @@ class GameGiveawaysApp(ctk.CTk):
         self.settings = new_settings
         self.refresh_games_async()
 
+    # ВЕРНУЛИ ФУНКЦИЮ ДЛЯ ГАЛОЧКИ GAMERPOWER
     def on_toggle_gamerpower(self):
         self.api.set_use_gamerpower(bool(self.gp_var.get()))
         self.refresh_games_async()
@@ -100,7 +107,6 @@ class GameGiveawaysApp(ctk.CTk):
     def set_loading(self, value: bool):
         self._loading = value
         if value:
-            self.status_label.configure(text="Обновляем")
             self.refresh_btn.configure(state="disabled")
             self.progress.pack(fill="x")
             self.progress.start()
@@ -124,11 +130,51 @@ class GameGiveawaysApp(ctk.CTk):
         if self._loading:
             return
         self.set_loading(True)
+        # Сбрасываем флаги загрузки: заставляем прогу обновить вкладки при следующем клике
+        self.loaded_tabs = {key: False for _, key in LABELS}
         threading.Thread(target=self.load_games, daemon=True).start()
+
+    def on_tab_changed(self, key):
+        # Если вкладка еще не загружена - грузим её (Lazy Load)
+        if not self.loaded_tabs.get(key, False):
+            if key in ["vkplay", "roblox", "mobile"]:
+                threading.Thread(target=self.load_lazy_tab, args=(key,), daemon=True).start()
+
+    def load_lazy_tab(self, key):
+        if self._loading: return
+        self.set_loading(True)
+        
+        names = {"vkplay": "VK Play", "roblox": "Roblox", "mobile": "Мобилки"}
+        self.after(0, lambda: self.status_label.configure(text=f"Загрузка: {names.get(key)}..."))
+        
+        try:
+            if key == "vkplay":
+                data = self.api.fetch_vkplay_discounts(limit=25)
+            elif key == "roblox":
+                data = self.api.fetch_roblox_loot(limit=25)
+            elif key == "mobile":
+                data = self.api.fetch_gacha_mobile_loot(limit=25)
+            else:
+                data = []
+
+            self.games[key] = data
+            self.loaded_tabs[key] = True
+            
+            # Отрисовываем только эту вкладку
+            self.after(0, lambda: self.render_games(self.tab_frames[key], data))
+            self.after(0, lambda: self.status_label.configure(text="Успешно обновлено"))
+        except Exception as e:
+            print(f"Lazy load error ({key}):", e)
+            self.after(0, self.on_games_error)
+        finally:
+            self.after(0, lambda: self.set_loading(False))
 
     def load_games(self):
         try:
-            self.games = {"all": [], "steam": [], "epic": [], "gog": [], "deals": [], "loot": []}
+            # Очищаем только базовые ПК-вкладки
+            for k in ["all", "steam", "epic", "deals", "loot"]:
+                self.games[k] = []
+                
             self.after(0, self.render_all_games)
             all_games = []
 
@@ -147,6 +193,10 @@ class GameGiveawaysApp(ctk.CTk):
                     self.distribute_and_render(chunk)
                 except Exception as e:
                     print("Task error:", e)
+
+            # Отмечаем базовые вкладки как загруженные
+            for k in ["all", "steam", "epic", "deals", "loot"]:
+                self.loaded_tabs[k] = True
 
             try:
                 if not self.first_load:
@@ -168,7 +218,6 @@ class GameGiveawaysApp(ctk.CTk):
         platforms_cfg = self.settings.get("platforms", {})
         steam_en = platforms_cfg.get("steam", True)
         epic_en = platforms_cfg.get("epic", True)
-        gog_en = platforms_cfg.get("gog", True)
         loot_en = platforms_cfg.get("loot", True)
 
         for g in chunk:
@@ -177,27 +226,22 @@ class GameGiveawaysApp(ctk.CTk):
             source = (g.get("source") or "").lower()
             title = (g.get("title") or "").lower()
             
-            # Фильтрация платформ по настройкам
             is_steam = "steam" in platkey or "steam" in source or "steam" in title
             is_epic = "epic" in platkey or "epic" in source or "epic" in title
-            is_gog = "gog" in platkey or "gog" in source or "gog" in title
             is_loot = genre == "loot" or platkey == "loot" or "loot" in source
 
             if is_steam and not steam_en: continue
             if is_epic and not epic_en: continue
-            if is_gog and not gog_en: continue
             if is_loot and not loot_en: continue
 
             price = (g.get("price") or "").strip().upper()
             if price and price != "FREE":
-                self.games["deals"].append(g)
+                if g not in self.games["deals"]: self.games["deals"].append(g)
             else:
                 if g not in self.games["all"]: self.games["all"].append(g)
-                if is_steam: self.games["steam"].append(g)
-                elif is_epic: self.games["epic"].append(g)
-                elif is_gog: self.games["gog"].append(g)
-                
-                if is_loot: self.games["loot"].append(g)
+                if is_steam and g not in self.games["steam"]: self.games["steam"].append(g)
+                elif is_epic and g not in self.games["epic"]: self.games["epic"].append(g)
+                if is_loot and g not in self.games["loot"]: self.games["loot"].append(g)
         
         self.after(0, self.render_all_games)
 
@@ -231,7 +275,7 @@ class GameGiveawaysApp(ctk.CTk):
         if not games:
             ctk.CTkLabel(
                 frame,
-                text="Ничего не найдено (или отключено в настройках)",
+                text="Ничего не найдено (или загружается...)",
                 font=ctk.CTkFont(size=16, weight="bold"),
                 text_color=THEMES["dark"]["text_secondary"],
             ).pack(expand=True, pady=50)

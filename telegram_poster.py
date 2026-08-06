@@ -93,6 +93,7 @@ BTN_PROMO = [
     "🕹️ Скачать авто-чекер"
 ]
 
+
 def send_to_telegram(game):
     title = game.get("title", "Неизвестная игра")
     platform = game.get("platform", "PC")

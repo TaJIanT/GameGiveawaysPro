@@ -1,4 +1,4 @@
-APP_VERSION = "1.0.5"
+APP_VERSION = "1.0.6"
 
 # -*- coding: utf-8 -*-
 APP_TITLE = "GameGiveawaysPro  Бесплатные игры"

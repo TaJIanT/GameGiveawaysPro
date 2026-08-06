@@ -21,7 +21,6 @@ class GameAPI:
     def __init__(self, usegamerpower=True):
         self.usegamerpower = usegamerpower
         self.session = requests.Session()
-        # Честный заголовок бота (повышает доверие защиты серверов)
         self.session.headers.update({
             "User-Agent": "GameGiveawaysPro Bot (https://github.com/TaJIanT/GameGiveawaysPro)",
             "Accept": "application/json"
@@ -31,7 +30,6 @@ class GameAPI:
         self.usegamerpower = bool(value)
 
     def _get_cheapshark(self, target_url):
-        # 1. Попытка честного прямого запроса
         try:
             r = self.session.get(target_url, timeout=REQUEST_TIMEOUT)
             if r.status_code == 200:
@@ -39,7 +37,6 @@ class GameAPI:
         except:
             pass
 
-        # 2. Попытка обойти фильтр через другую системную библиотеку (изменяет отпечаток)
         try:
             req = urllib.request.Request(target_url, headers={"User-Agent": "python-urllib/3.9"})
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
@@ -50,18 +47,16 @@ class GameAPI:
 
         print("🔄 Прямые запросы к CheapShark заблокированы, пробиваемся через API-прокси...")
 
-        # 3. Мощный прокси AllOrigins (GET-обертка, спасает от таймаутов)
         encoded_url = urllib.parse.quote(target_url)
         try:
             r = requests.get(f"https://api.allorigins.win/get?url={encoded_url}", timeout=15)
             if r.status_code == 200:
                 wrapper = r.json()
                 if "contents" in wrapper and wrapper["contents"]:
-                    return json.loads(wrapper["contents"]) # Распаковываем ответ
+                    return json.loads(wrapper["contents"])
         except:
             pass
 
-        # 4. Резервный прокси CodeTabs
         try:
             r = requests.get(f"https://api.codetabs.com/v1/proxy/?quest={target_url}", timeout=15)
             if r.status_code == 200:
@@ -69,7 +64,7 @@ class GameAPI:
         except:
             pass
 
-        print("❌ Ошибка: Серверы CheapShark временно отклонили все 4 попытки доступа.")
+        print("❌ Ошибка: Серверы CheapShark временно отклонили все попытки доступа.")
         return []
 
     def fetch_cheapshark_free(self, limit=20):
@@ -295,7 +290,6 @@ class GameAPI:
         return games
 
     def fetch_roblox_loot(self, limit=10):
-        # 1. Поиск по GamerPower
         params = {"type": "loot", "sort-by": "date"}
         games = []
         try:
@@ -330,40 +324,67 @@ class GameAPI:
                             "tags": ["Roblox", "Loot"],
                             "end_at": item.get("endDate")
                         })
-        except Exception as e:
-            print(f"❌ Ошибка GamerPower Roblox: {e}")
+                        if len(games) >= limit: 
+                            break
+        except Exception:
+            pass
+        return games
 
-        # 2. Поиск рабочих промокодов Roblox из открытой базы
+    def fetch_gacha_mobile_loot(self, limit=10):
+        # Поиск лута и кодов для Мобилок и Гача-игр
+        params = {"type": "loot", "sort-by": "date"}
+        games = []
         try:
-            r_codes = self.session.get(ROBLOX_CODES_API, timeout=REQUEST_TIMEOUT)
-            if r_codes.status_code == 200:
-                codes_data = r_codes.json()
-                for c in codes_data.get("active_codes", [])[:5]:
-                    code_str = c.get("code", "")
-                    reward = c.get("reward", "Бесплатный предмет")
+            r = self.session.get(GAMERPOWER_API, params=params, timeout=REQUEST_TIMEOUT)
+            if r.status_code == 200:
+                data = r.json()
+                for item in data:
+                    if item.get("status") == "Ended": continue
+                    
+                    title = item.get("title", "").lower()
+                    desc = item.get("description", "").lower()
+                    
+                    # Ключевые слова для поиска
+                    gacha_kws = ["genshin", "honkai", "star rail", "zenless", "zzz", "hoyoverse", "mihoyo"]
+                    mobile_kws = ["pubg", "call of duty mobile", "cod mobile", "mobile legends", "coin master", "free fire", "pokemon go"]
+                    
+                    is_gacha = any(kw in title or kw in desc for kw in gacha_kws)
+                    is_mobile = any(kw in title or kw in desc for kw in mobile_kws)
+                    
+                    if not (is_gacha or is_mobile):
+                        continue
+
+                    platform_name = "HoYoverse (Гача)" if is_gacha else "Мобильные Игры"
+                    platform_key = "gacha" if is_gacha else "mobile"
+                    
+                    worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
+                    worth_val = float(worth_str) if worth_str else 0.0
+
                     games.append({
-                        "id": f"roblox-code-{code_str}",
-                        "title": f"Промокод Roblox: {code_str}",
-                        "platform": "Roblox",
-                        "platformkey": "roblox",
-                        "genre": "Промокод",
-                        "developer": "Roblox",
-                        "description": f"🔑 Промокод: {code_str}\n🎁 Награда: {reward}\nАктивировать на roblox.com/redeem",
-                        "worth": 0.0,
+                        "id": f"gp-mobile-{item.get('id', '')}",
+                        "title": item.get("title", ""),
+                        "platform": platform_name,
+                        "platformkey": platform_key,
+                        "genre": "Промокоды / Лут",
+                        "developer": "Mobile Dev",
+                        "description": (item.get("description", "") or "")[:220],
+                        "worth": worth_val,
                         "price": "FREE",
-                        "period": "Активен",
-                        "image": "https://images.rbxcdn.com/712361d8286758feb354b65ac54a7631.png",
-                        "link": "https://www.roblox.com/redeem",
+                        "period": item.get("endDate") or "TBD",
+                        "image": item.get("image") or PLACEHOLDER_IMG,
+                        "link": item.get("openGiveawayURL", "") or item.get("open_giveaway_url", ""),
                         "hot": True,
                         "ratingscore": 10.0,
-                        "source": "Roblox Official",
-                        "tags": ["Roblox", "Code"],
-                        "end_at": None
+                        "source": "Mobile Promo",
+                        "tags": ["Mobile", "Promo", platform_key],
+                        "end_at": item.get("endDate")
                     })
-        except Exception:
-            pass # Если база кодов недоступна, просто игнорируем
+                    if len(games) >= limit: 
+                        break
+        except Exception as e:
+            print(f"❌ Ошибка GamerPower (Mobile/Gacha): {e}")
 
-        return games[:limit]
+        return games
 
     def store_name(self, storeid):
         return {
@@ -371,3 +392,4 @@ class GameAPI:
             "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
             "25": "Epic Games", "30": "IndieGala"
         }.get(storeid, "Store")
+        

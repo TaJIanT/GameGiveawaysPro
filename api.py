@@ -4,6 +4,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+import re  # Добавили для очистки HTML-тегов
 
 CHEAPSHARK_API = "https://www.cheapshark.com/api/1.0/deals"
 GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
@@ -28,6 +29,26 @@ class GameAPI:
 
     def set_use_gamerpower(self, value):
         self.usegamerpower = bool(value)
+
+    # === НАШ НОВЫЙ ВСТРОЕННЫЙ ПЕРЕВОДЧИК (GOOGLE TRANSLATE) ===
+    def translate_to_ru(self, text):
+        if not text or not text.strip():
+            return ""
+        try:
+            # Берем первые 400 символов, чтобы не грузить API и перевести только суть
+            clean_text = text[:400] 
+            encoded_text = urllib.parse.quote(clean_text)
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q={encoded_text}"
+            
+            r = self.session.get(url, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                # Склеиваем переведенные предложения
+                translated = "".join([sentence[0] for sentence in data[0]])
+                return translated
+        except Exception as e:
+            print(f"⚠️ Ошибка перевода: {e}")
+        return text  # Если гугл отвалился, возвращаем английский оригинал
 
     def _get_cheapshark(self, target_url):
         try:
@@ -173,6 +194,10 @@ class GameAPI:
             worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
             worth_val = float(worth_str) if worth_str else 0.0
 
+            # ПЕРЕВОДИМ ОПИСАНИЕ
+            raw_desc = item.get("description", "") or ""
+            ru_desc = self.translate_to_ru(raw_desc)
+
             games.append({
                 "id": f"gp-pc-{item.get('id', '')}",
                 "title": item.get("title", ""),
@@ -180,7 +205,7 @@ class GameAPI:
                 "platformkey": p_key,
                 "genre": item.get("type", "Giveaway"),
                 "developer": "GamerPower",
-                "description": (item.get("description", "") or "")[:220],
+                "description": ru_desc[:220],
                 "worth": worth_val,
                 "price": "FREE",
                 "period": item.get("endDate") or "TBD",
@@ -211,6 +236,10 @@ class GameAPI:
             worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
             worth_val = float(worth_str) if worth_str else 0.0
 
+            # ПЕРЕВОДИМ ОПИСАНИЕ
+            raw_desc = item.get("description", "") or ""
+            ru_desc = self.translate_to_ru(raw_desc)
+
             games.append({
                 "id": f"gp-loot-{item.get('id', '')}",
                 "title": item.get("title", ""),
@@ -218,7 +247,7 @@ class GameAPI:
                 "platformkey": "loot",
                 "genre": "Loot",
                 "developer": "GamerPower",
-                "description": (item.get("description", "") or "")[:220],
+                "description": ru_desc[:220],
                 "worth": worth_val,
                 "price": "FREE",
                 "period": item.get("endDate") or "TBD",
@@ -299,11 +328,14 @@ class GameAPI:
                 for item in data:
                     if item.get("status") == "Ended": continue
                     title = item.get("title", "").lower()
-                    desc = item.get("description", "").lower()
+                    desc_en = item.get("description", "").lower()
                     
-                    if "roblox" in title or "roblox" in desc:
+                    if "roblox" in title or "roblox" in desc_en:
                         worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
                         worth_val = float(worth_str) if worth_str else 0.0
+                        
+                        # ПЕРЕВОДИМ ОПИСАНИЕ
+                        ru_desc = self.translate_to_ru(item.get("description", ""))
 
                         games.append({
                             "id": f"gp-roblox-{item.get('id', '')}",
@@ -312,7 +344,7 @@ class GameAPI:
                             "platformkey": "roblox",
                             "genre": "Roblox Халява",
                             "developer": "Roblox",
-                            "description": (item.get("description", "") or "")[:220],
+                            "description": ru_desc[:220],
                             "worth": worth_val,
                             "price": "FREE",
                             "period": item.get("endDate") or "TBD",
@@ -331,7 +363,6 @@ class GameAPI:
         return games
 
     def fetch_gacha_mobile_loot(self, limit=10):
-        # Поиск лута и кодов для Мобилок и Гача-игр
         params = {"type": "loot", "sort-by": "date"}
         games = []
         try:
@@ -342,14 +373,13 @@ class GameAPI:
                     if item.get("status") == "Ended": continue
                     
                     title = item.get("title", "").lower()
-                    desc = item.get("description", "").lower()
+                    desc_en = item.get("description", "").lower()
                     
-                    # Ключевые слова для поиска
                     gacha_kws = ["genshin", "honkai", "star rail", "zenless", "zzz", "hoyoverse", "mihoyo"]
                     mobile_kws = ["pubg", "call of duty mobile", "cod mobile", "mobile legends", "coin master", "free fire", "pokemon go"]
                     
-                    is_gacha = any(kw in title or kw in desc for kw in gacha_kws)
-                    is_mobile = any(kw in title or kw in desc for kw in mobile_kws)
+                    is_gacha = any(kw in title or kw in desc_en for kw in gacha_kws)
+                    is_mobile = any(kw in title or kw in desc_en for kw in mobile_kws)
                     
                     if not (is_gacha or is_mobile):
                         continue
@@ -360,6 +390,9 @@ class GameAPI:
                     worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
                     worth_val = float(worth_str) if worth_str else 0.0
 
+                    # ПЕРЕВОДИМ ОПИСАНИЕ
+                    ru_desc = self.translate_to_ru(item.get("description", ""))
+
                     games.append({
                         "id": f"gp-mobile-{item.get('id', '')}",
                         "title": item.get("title", ""),
@@ -367,7 +400,7 @@ class GameAPI:
                         "platformkey": platform_key,
                         "genre": "Промокоды / Лут",
                         "developer": "Mobile Dev",
-                        "description": (item.get("description", "") or "")[:220],
+                        "description": ru_desc[:220],
                         "worth": worth_val,
                         "price": "FREE",
                         "period": item.get("endDate") or "TBD",
@@ -386,10 +419,80 @@ class GameAPI:
 
         return games
 
+    def fetch_steam_new_releases(self, limit=10):
+        url = "https://store.steampowered.com/api/featuredcategories/?cc=us&l=ru"
+        try:
+            r = self.session.get(url, timeout=REQUEST_TIMEOUT)
+            r.raise_for_status()
+            data = r.json()
+            new_releases = data.get("new_releases", {}).get("items", [])
+        except Exception as e:
+            print(f"❌ Ошибка Steam New Releases: {e}")
+            return []
+
+        games = []
+        for item in new_releases:
+            game_id = item.get("id")
+            title = item.get("name", "Новая игра")
+            
+            orig_cents = item.get("original_price", 0) or 0
+            final_cents = item.get("final_price", 0) or 0
+            discount = item.get("discount_percent", 0) or 0
+            
+            orig_price = orig_cents / 100.0
+            final_price = final_cents / 100.0
+            
+            # --- ФОРМИРУЕМ ЦЕНУ И СКИДКУ ---
+            if final_price == 0 and orig_price == 0:
+                price_str = "FREE"
+            elif discount > 0:
+                price_str = f"${final_price:.2f} (-{discount}%)"
+            else:
+                price_str = f"${final_price:.2f}"
+
+            # --- ПОЛУЧАЕМ ОФИЦИАЛЬНОЕ РУССКОЕ ОПИСАНИЕ ИЗ STEAM ---
+            desc = "🎮 Свежий релиз, который только что появился в магазине Steam!"
+            try:
+                # Делаем быстрый запрос к деталям игры именно с параметром l=russian
+                det_url = f"https://store.steampowered.com/api/appdetails?appids={game_id}&l=russian"
+                det_r = self.session.get(det_url, timeout=5)
+                if det_r.status_code == 200:
+                    det_data = det_r.json()
+                    if det_data and str(game_id) in det_data and det_data[str(game_id)].get("success"):
+                        fetched_desc = det_data[str(game_id)]["data"].get("short_description")
+                        if fetched_desc:
+                            # Очищаем текст от мусорных HTML тегов (вроде <br>, <strong> и тд)
+                            fetched_desc = re.sub(r'<[^>]+>', '', fetched_desc)
+                            desc = fetched_desc[:220]
+            except Exception as e:
+                pass # Если не получилось скачать описание, оставляем дефолтное
+
+            games.append({
+                "id": f"steam-new-{game_id}",
+                "title": title,
+                "platform": "Steam (Новинка)",
+                "platformkey": "steam_new",
+                "genre": "Релиз в Steam",
+                "developer": "Steam",
+                "description": desc,
+                "worth": orig_price,
+                "price": price_str,
+                "period": "Релиз",
+                "image": item.get("large_capsule_image") or item.get("header_image") or PLACEHOLDER_IMG,
+                "link": f"https://store.steampowered.com/app/{game_id}/",
+                "hot": True,
+                "ratingscore": 10.0,
+                "source": "Steam Store",
+                "tags": ["Steam", "NewRelease"],
+                "end_at": None,
+            })
+            if len(games) >= limit:
+                break
+        return games
+
     def store_name(self, storeid):
         return {
             "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
             "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
             "25": "Epic Games", "30": "IndieGala"
         }.get(storeid, "Store")
-        

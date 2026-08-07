@@ -450,7 +450,7 @@ class GameAPI:
             else:
                 price_str = f"${final_price:.2f}"
 
-            # --- ПОЛУЧАЕМ ОФИЦИАЛЬНОЕ РУССКОЕ ОПИСАНИЕ ИЗ STEAM ---
+            # --- ПОЛУЧАЕМ ОФИЦИАЛЬНОЕ РУССКОЕ ОПИСАНИЕ ИЗ STEAM ИЛИ ПЕРЕВОДИМ ---
             desc = "🎮 Свежий релиз, который только что появился в магазине Steam!"
             try:
                 # Делаем быстрый запрос к деталям игры именно с параметром l=russian
@@ -463,7 +463,8 @@ class GameAPI:
                         if fetched_desc:
                             # Очищаем текст от мусорных HTML тегов (вроде <br>, <strong> и тд)
                             fetched_desc = re.sub(r'<[^>]+>', '', fetched_desc)
-                            desc = fetched_desc[:220]
+                            # Принудительно пропускаем текст через наш переводчик
+                            desc = self.translate_to_ru(fetched_desc)[:220]
             except Exception as e:
                 pass # Если не получилось скачать описание, оставляем дефолтное
 

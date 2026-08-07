@@ -74,6 +74,16 @@ HEADERS_MOBILE = [
     "🕹️ МОБИЛЬНЫЙ ГЕЙМИНГ"
 ]
 
+# Заголовки для НОВИНОК STEAM
+HEADERS_STEAM_NEW = [
+    "🎮 СВЕЖИЙ РЕЛИЗ В STEAM",
+    "🚀 НОВИНКА В STEAM",
+    "🔥 ТОЛЬКО ЧТО ВЫШЛО В STEAM",
+    "🕹️ НОВАЯ ИГРА В STEAM",
+    "✨ РЕЛИЗ ДНЯ В STEAM",
+    "📦 СОСТОЯЛСЯ РЕЛИЗ В STEAM"
+]
+
 PRICE_PREFIXES = ["💸 Прайс:", "💰 Цена вопроса:", "💳 Стоило:"]
 DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "📜 Сюжет:", "💡 Спойлер:"]
 
@@ -118,6 +128,9 @@ def send_to_telegram(game):
     if platform_key == "roblox" or "roblox" in platform.lower():
         header = random.choice(HEADERS_ROBLOX)
         tag_type = "#roblox #роблокс"
+    elif platform_key == "steam_new":
+        header = random.choice(HEADERS_STEAM_NEW)
+        tag_type = "#steam #новинки #релиз"
     elif platform_key == "gacha":
         header = random.choice(HEADERS_GACHA)
         tag_type = "#genshin #honkai #промокоды"
@@ -194,7 +207,7 @@ def main():
         print("❌ ОШИБКА: Секреты не найдены!")
         sys.exit(1)
 
-    print("🤖 Запуск проверки раздач, скидок, мобилок и Roblox...")
+    print("🤖 Запуск проверки раздач, скидок, мобилок, Roblox и новинок Steam...")
     api = GameAPI(usegamerpower=True)
     nm = NotificationManager(parent=None)
     
@@ -235,7 +248,16 @@ def main():
         print(f"🧠 В кэше появилось новых скидок: {len(discounts)}")
     except: pass
 
-    # --- 5. ПУБЛИКАЦИЯ ---
+    # --- 5. НОВИНКИ STEAM ---
+    steam_new_items = []
+    try:
+        raw_steam_new = api.fetch_steam_new_releases(limit=10)
+        print(f"📡 API вернуло новинок Steam: {len(raw_steam_new)}")
+        steam_new_items = get_unseen_items(nm, raw_steam_new)
+    except Exception as e:
+        print(f"❌ Ошибка сбора новинок Steam: {e}")
+
+    # --- 6. ПУБЛИКАЦИЯ ---
     total_posted = 0
 
     if new_freebies:
@@ -263,8 +285,15 @@ def main():
             time.sleep(2)
             total_posted += 1
 
+    if steam_new_items:
+        for game in steam_new_items[:2]:  # Не больше 2 новинок за раз
+            send_to_telegram(game)
+            time.sleep(2)
+            total_posted += 1
+
     if total_posted == 0:
-        print("🤷‍♂️ Новых раздач, скидок и лута пока нет.")
+        print("🤷‍♂️ Новых раздач, скидок, лута и релизов пока нет.")
 
 if __name__ == '__main__':
     main()
+    

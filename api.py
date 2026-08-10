@@ -4,7 +4,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
-import re  # Добавили для очистки HTML-тегов
+import re
 
 CHEAPSHARK_API = "https://www.cheapshark.com/api/1.0/deals"
 GAMERPOWER_API = "https://www.gamerpower.com/api/giveaways"
@@ -30,12 +30,10 @@ class GameAPI:
     def set_use_gamerpower(self, value):
         self.usegamerpower = bool(value)
 
-    # === НАШ НОВЫЙ ВСТРОЕННЫЙ ПЕРЕВОДЧИК (GOOGLE TRANSLATE) ===
     def translate_to_ru(self, text):
         if not text or not text.strip():
             return ""
         try:
-            # Берем первые 400 символов, чтобы не грузить API и перевести только суть
             clean_text = text[:400] 
             encoded_text = urllib.parse.quote(clean_text)
             url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q={encoded_text}"
@@ -43,12 +41,11 @@ class GameAPI:
             r = self.session.get(url, timeout=5)
             if r.status_code == 200:
                 data = r.json()
-                # Склеиваем переведенные предложения
                 translated = "".join([sentence[0] for sentence in data[0]])
                 return translated
         except Exception as e:
             print(f"⚠️ Ошибка перевода: {e}")
-        return text  # Если гугл отвалился, возвращаем английский оригинал
+        return text 
 
     def _get_cheapshark(self, target_url):
         try:
@@ -65,8 +62,6 @@ class GameAPI:
                     return json.loads(response.read().decode('utf-8'))
         except:
             pass
-
-        print("🔄 Прямые запросы к CheapShark заблокированы, пробиваемся через API-прокси...")
 
         encoded_url = urllib.parse.quote(target_url)
         try:
@@ -194,7 +189,6 @@ class GameAPI:
             worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
             worth_val = float(worth_str) if worth_str else 0.0
 
-            # ПЕРЕВОДИМ ОПИСАНИЕ
             raw_desc = item.get("description", "") or ""
             ru_desc = self.translate_to_ru(raw_desc)
 
@@ -236,7 +230,6 @@ class GameAPI:
             worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
             worth_val = float(worth_str) if worth_str else 0.0
 
-            # ПЕРЕВОДИМ ОПИСАНИЕ
             raw_desc = item.get("description", "") or ""
             ru_desc = self.translate_to_ru(raw_desc)
 
@@ -334,7 +327,6 @@ class GameAPI:
                         worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
                         worth_val = float(worth_str) if worth_str else 0.0
                         
-                        # ПЕРЕВОДИМ ОПИСАНИЕ
                         ru_desc = self.translate_to_ru(item.get("description", ""))
 
                         games.append({
@@ -390,7 +382,6 @@ class GameAPI:
                     worth_str = str(item.get("worth", "0")).replace("$", "").replace("N/A", "0").replace(" ", "")
                     worth_val = float(worth_str) if worth_str else 0.0
 
-                    # ПЕРЕВОДИМ ОПИСАНИЕ
                     ru_desc = self.translate_to_ru(item.get("description", ""))
 
                     games.append({
@@ -426,6 +417,10 @@ class GameAPI:
             r.raise_for_status()
             data = r.json()
             new_releases = data.get("new_releases", {}).get("items", [])
+            
+            # Собираем ID топовых игр (Хиты продаж)
+            top_sellers = data.get("top_sellers", {}).get("items", [])
+            top_seller_ids = {item.get("id") for item in top_sellers}
         except Exception as e:
             print(f"❌ Ошибка Steam New Releases: {e}")
             return []
@@ -442,7 +437,10 @@ class GameAPI:
             orig_price = orig_cents / 100.0
             final_price = final_cents / 100.0
             
-            # --- ФОРМИРУЕМ ЦЕНУ И СКИДКУ ---
+            # ФИЛЬТР: Пропускаем платные игры, если они НЕ входят в хиты продаж
+            if final_price > 0 and game_id not in top_seller_ids:
+                continue
+                
             if final_price == 0 and orig_price == 0:
                 price_str = "FREE"
             elif discount > 0:
@@ -450,10 +448,8 @@ class GameAPI:
             else:
                 price_str = f"${final_price:.2f}"
 
-            # --- ПОЛУЧАЕМ ОФИЦИАЛЬНОЕ РУССКОЕ ОПИСАНИЕ ИЗ STEAM ИЛИ ПЕРЕВОДИМ ---
             desc = "🎮 Свежий релиз, который только что появился в магазине Steam!"
             try:
-                # Делаем быстрый запрос к деталям игры именно с параметром l=russian
                 det_url = f"https://store.steampowered.com/api/appdetails?appids={game_id}&l=russian"
                 det_r = self.session.get(det_url, timeout=5)
                 if det_r.status_code == 200:
@@ -461,12 +457,10 @@ class GameAPI:
                     if det_data and str(game_id) in det_data and det_data[str(game_id)].get("success"):
                         fetched_desc = det_data[str(game_id)]["data"].get("short_description")
                         if fetched_desc:
-                            # Очищаем текст от мусорных HTML тегов (вроде <br>, <strong> и тд)
                             fetched_desc = re.sub(r'<[^>]+>', '', fetched_desc)
-                            # Принудительно пропускаем текст через наш переводчик
                             desc = self.translate_to_ru(fetched_desc)[:220]
             except Exception as e:
-                pass # Если не получилось скачать описание, оставляем дефолтное
+                pass
 
             games.append({
                 "id": f"steam-new-{game_id}",
@@ -497,3 +491,4 @@ class GameAPI:
             "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
             "25": "Epic Games", "30": "IndieGala"
         }.get(storeid, "Store")
+        

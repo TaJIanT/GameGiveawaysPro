@@ -4,104 +4,129 @@ import sys
 import time
 import random
 import requests
+import json
+import xml.etree.ElementTree as ET
+from email.utils import formatdate
 from api import GameAPI
 from notifications import NotificationManager
 
 TG_TOKEN = os.environ.get("TG_TOKEN")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID")
 
+RSS_FILE = "rss.xml"
+FEED_CACHE = "dzen_feed.json"
+
 # Заголовки для БЕСПЛАТНЫХ раздач (ПК)
 HEADERS_FREE = [
-    "🔥 ЛУТАЕМ ХАЛЯВУ", 
-    "🚨 СВЕЖИЙ ДРОП", 
-    "⚡️ СРОЧНО НА АККАУНТ", 
-    "🎁 ЗАВОЗ БЕСПЛАТНЫХ ИГР", 
-    "🎉 100% СКИДКА (БЕСПЛАТНО)",
-    "🤑 ЗАБИРАЙ, ПОКА ДАЮТ",
-    "🕹️ ПОПОЛНЕНИЕ БИБЛИОТЕКИ",
-    "🚀 ХАЛЯВНАЯ ИГРА",
-    "💸 НОЛЬ РУБЛЕЙ, НОЛЬ КОПЕЕК",
+    "🔥 ЛУТАЕМ ХАЛЯВУ", "🚨 СВЕЖИЙ ДРОП", "⚡️ СРОЧНО НА АККАУНТ", 
+    "🎁 ЗАВОЗ БЕСПЛАТНЫХ ИГР", "🎉 100% СКИДКА (БЕСПЛАТНО)",
+    "🤑 ЗАБИРАЙ, ПОКА ДАЮТ", "🕹️ ПОПОЛНЕНИЕ БИБЛИОТЕКИ",
+    "🚀 ХАЛЯВНАЯ ИГРА", "💸 НОЛЬ РУБЛЕЙ, НОЛЬ КОПЕЕК",
     "📦 ЩЕДРЫЙ ПОДАРОК ГЕЙМЕРУ"
 ]
 
-# Заголовки для СКИДОК
-HEADERS_DISCOUNT = [
-    "📉 ЖАРКАЯ СКИДКА",
-    "🏷️ ОТЛИЧНОЕ ПРЕДЛОЖЕНИЕ",
-    "💥 БОЛЬШАЯ СКИДКА",
-    "💰 ТОТАЛЬНЫЙ ЦЕНОПАД",
-    "✂️ РУБИМ ЦЕНЫ",
-    "🔥 ВЫГОДНАЯ СДЕЛКА",
-    "🛒 ВРЕМЯ ЗАКУПАТЬСЯ",
-    "📉 СЕРЬЕЗНЫЙ ОБВАЛ ЦЕН",
-    "🤑 ЭКОНОМИМ КЭШ НА ИГРАХ"
-]
-
-# Заголовки специально для ROBLOX
-HEADERS_ROBLOX = [
-    "🟥 ROBLOX ХАЛЯВА",
-    "🎁 СВЕЖИЙ ЛУТ И КОДЫ ROBLOX",
-    "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX",
-    "🧊 РОБАКСЫ И ПРЕДМЕТЫ",
-    "🎮 НОВЫЙ ДРОП В ROBLOX",
-    "🎒 БЕСПЛАТНЫЙ ИНВЕНТАРЬ ROBLOX",
-    "🔥 СЕКРЕТНЫЕ КОДЫ ДЛЯ ПЛЕЙСОВ",
-    "👕 ШМОТ И ПЕТЫ В ROBLOX"
-]
-
-# Заголовки для ГАЧА-ИГР (Genshin, Honkai, ZZZ)
-HEADERS_GACHA = [
-    "💎 НОВЫЕ ПРОМОКОДЫ",
-    "✨ ХАЛЯВА HOYOVERSE",
-    "🌸 ПРИМОГЕМЫ И НЕФРИТ",
-    "🌠 СРОЧНЫЙ ВВОД КОДОВ",
-    "🎟️ ХАЛЯВА ОТ РАЗРАБОВ",
-    "💫 ЛУТАЕМ КАМНИ ИСТОКА",
-    "🎁 ЗАПАСАЕМСЯ КРУТКАМИ",
-    "🚀 НОВЫЕ КОДЫ ДЛЯ ГАЧИ",
-    "🔮 ПРОМОКОДЫ СО СТРИМА"
-]
-
-# Заголовки для МОБИЛЬНЫХ ИГР
-HEADERS_MOBILE = [
-    "📱 ЛУТ ДЛЯ МОБИЛОК",
-    "🎯 МОБИЛЬНАЯ ХАЛЯВА",
-    "🔥 ПРОМОКОДЫ НА ТЕЛЕФОН",
-    "📲 НОВЫЙ ДРОП ДЛЯ МОБИЛОК",
-    "🎒 ХАЛЯВА В КАРМАНЕ",
-    "🎮 БОНУСЫ НА СМАРТФОН",
-    "💎 СКИНЫ И ВАЛЮТА",
-    "🕹️ МОБИЛЬНЫЙ ГЕЙМИНГ"
-]
-
-# Заголовки для НОВИНОК STEAM
-HEADERS_STEAM_NEW = [
-    "🎮 СВЕЖИЙ РЕЛИЗ В STEAM",
-    "🚀 НОВИНКА В STEAM",
-    "🔥 ТОЛЬКО ЧТО ВЫШЛО В STEAM",
-    "🕹️ НОВАЯ ИГРА В STEAM",
-    "✨ РЕЛИЗ ДНЯ В STEAM",
-    "📦 СОСТОЯЛСЯ РЕЛИЗ В STEAM"
-]
+HEADERS_DISCOUNT = ["📉 ЖАРКАЯ СКИДКА", "🏷️ ОТЛИЧНОЕ ПРЕДЛОЖЕНИЕ", "💥 БОЛЬШАЯ СКИДКА", "💰 ТОТАЛЬНЫЙ ЦЕНОПАД"]
+HEADERS_ROBLOX = ["🟥 ROBLOX ХАЛЯВА", "🎁 СВЕЖИЙ ЛУТ И КОДЫ ROBLOX", "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX"]
+HEADERS_GACHA = ["💎 НОВЫЕ ПРОМОКОДЫ", "✨ ХАЛЯВА HOYOVERSE", "🌸 ПРИМОГЕМЫ И НЕФРИТ"]
+HEADERS_MOBILE = ["📱 ЛУТ ДЛЯ МОБИЛОК", "🎯 МОБИЛЬНАЯ ХАЛЯВА", "🔥 ПРОМОКОДЫ НА ТЕЛЕФОН"]
+HEADERS_STEAM_NEW = ["🎮 СВЕЖИЙ РЕЛИЗ В STEAM", "🚀 НОВИНКА В STEAM", "🔥 ТОЛЬКО ЧТО ВЫШЛО В STEAM"]
 
 PRICE_PREFIXES = ["💸 Прайс:", "💰 Цена вопроса:", "💳 Стоило:"]
 DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "📜 Сюжет:", "💡 Спойлер:"]
 
-BTN_GET_GAME = [
-    "🏃‍♂️ Залутать", 
-    "⚡️ Перейти", 
-    "🔥 Посмотреть",
-    "🎯 Забрать себе",
-    "🛒 В магазин",
-    "🎁 Активировать"
+BTN_GET_GAME = ["🏃‍♂️ Залутать", "⚡️ Перейти", "🔥 Посмотреть", "🎯 Забрать себе", "🛒 В магазин", "🎁 Активировать"]
+BTN_PROMO = ["🤖 Наш трекер халявы на ПК", "💻 Качай GameGiveawaysPro", "🚀 Ищи игры в нашей проге", "🕹️ Скачать авто-чекер"]
+
+# --- ВАРИАТИВНОСТЬ ДЛЯ ДЗЕНА (RSS) ---
+RSS_TITLE_TEMPLATES = [
+    "🔥 Бесплатная игра: {title} раздается прямо сейчас!",
+    "🎁 Забирай 100% скидку на {title}",
+    "⚡ Временно бесплатно: {title} для ПК",
+    "🎮 Очередная раздача халявы: {title}",
+    "🚀 Успей забрать {title} бесплатно на свой аккаунт",
+    "📦 Щедрый дроп: раздают игру {title}"
 ]
 
-BTN_PROMO = [
-    "🤖 Наш трекер халявы на ПК", 
-    "💻 Качай GameGiveawaysPro",
-    "🚀 Ищи игры в нашей проге",
-    "🕹️ Скачать авто-чекер"
+RSS_DESC_TEMPLATES = [
+    "Отличное пополнение для твоей библиотеки.",
+    "Забирай скорее, пока разработчики не передумали!",
+    "Шикарная возможность сэкономить.",
+    "Не упусти шанс забрать этот проект навсегда.",
+    "Халява не вечна, так что лучше поторопиться.",
+    "Идеально, чтобы поиграть на выходных."
 ]
+
+
+def update_rss_feed(game):
+    """Создает и обновляет автономный RSS-файл для Дзена с вариативным текстом"""
+    title = game.get("title", "Game")
+    link = game.get("link", "")
+    desc = game.get("description", "")
+    platform = game.get("platform", "PC")
+    img_url = game.get("image", "")
+    game_id = game.get("id", str(time.time()))
+    
+    # Случайная генерация уникального заголовка и приписки
+    rss_title = random.choice(RSS_TITLE_TEMPLATES).format(title=title)
+    random_phrase = random.choice(RSS_DESC_TEMPLATES)
+    
+    # Формируем HTML для Дзена
+    html_desc = f"""
+    <img src="{img_url}"><br><br>
+    <b>Платформа:</b> {platform}<br><br>
+    {desc}<br><br>
+    <i>{random_phrase}</i><br><br>
+    ⚡ <b>НЕТ ПРОСТО РАЗДАЕМ КТО УСПЕЛ ТОТ И СЬЕЛ)</b><br><br>
+    <a href="{link}">👉 Забрать игру на свой аккаунт</a><br><br>
+    <hr>
+    <i>Больше моментальных раздач и наша бесплатная программа для ПК (GameGiveawaysPro) ждут вас в <a href="https://t.me/ggpro_free_games">нашем Telegram-канале</a>!</i>
+    """
+    
+    # Загружаем историю прошлых раздач
+    try:
+        if os.path.exists(FEED_CACHE):
+            with open(FEED_CACHE, 'r', encoding='utf-8') as f:
+                feed_items = json.load(f)
+        else:
+            feed_items = []
+    except:
+        feed_items = []
+
+    new_item = {
+        "title": rss_title,
+        "link": link,
+        "description": html_desc,
+        "pubDate": formatdate(timeval=None, localtime=False, usegmt=True),
+        "guid": game_id
+    }
+    
+    # Оставляем только последние 20 штук, чтобы лента не была бесконечной
+    if not any(item["guid"] == new_item["guid"] for item in feed_items):
+        feed_items.insert(0, new_item)
+    feed_items = feed_items[:20]
+    
+    # Сохраняем кэш RSS
+    with open(FEED_CACHE, 'w', encoding='utf-8') as f:
+        json.dump(feed_items, f, ensure_ascii=False, indent=2)
+        
+    # Генерируем сам XML файл
+    rss = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(rss, "channel")
+    ET.SubElement(channel, "title").text = "Халява Steam и Epic Games"
+    ET.SubElement(channel, "link").text = "https://t.me/ggpro_free_games"
+    ET.SubElement(channel, "description").text = "Отборные 100% скидки и бесплатные раздачи топовых игр."
+    
+    for item in feed_items:
+        item_el = ET.SubElement(channel, "item")
+        ET.SubElement(item_el, "title").text = item["title"]
+        ET.SubElement(item_el, "link").text = item["link"]
+        ET.SubElement(item_el, "description").text = item["description"]
+        ET.SubElement(item_el, "pubDate").text = item["pubDate"]
+        ET.SubElement(item_el, "guid").text = item["guid"]
+        
+    tree = ET.ElementTree(rss)
+    tree.write(RSS_FILE, encoding="utf-8", xml_declaration=True)
+    print(f"📝 RSS лента обновлена: {title}")
 
 
 def send_to_telegram(game):
@@ -263,6 +288,10 @@ def main():
     if new_freebies:
         for game in new_freebies:
             send_to_telegram(game)
+            # Отбираем жирные раздачи в RSS
+            plat = game.get("platformkey", "").lower()
+            if "epic" in plat or "steam" in plat:
+                update_rss_feed(game)
             time.sleep(2)
             total_posted += 1
 
@@ -280,14 +309,15 @@ def main():
 
     if discounts:
         random.shuffle(discounts)
-        for game in discounts[:3]:  # Не больше 3 постов скидок за раз
+        for game in discounts[:3]:  
             send_to_telegram(game)
             time.sleep(2)
             total_posted += 1
 
     if steam_new_items:
-        for game in steam_new_items[:2]:  # Не больше 2 новинок за раз
+        for game in steam_new_items[:2]:  
             send_to_telegram(game)
+            update_rss_feed(game) # Новинки у нас бесплатные, тоже пишем в RSS
             time.sleep(2)
             total_posted += 1
 

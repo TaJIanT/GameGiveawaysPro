@@ -9,9 +9,11 @@ from notifications import NotificationManager
 
 TG_TOKEN = os.environ.get("TG_TOKEN")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID")
-TG_DZEN_CHAT_ID = os.environ.get("TG_DZEN_CHAT_ID") # Буферный канал для Дзена
+TG_DZEN_CHAT_ID = os.environ.get("TG_DZEN_CHAT_ID") 
 
-# Заголовки для БЕСПЛАТНЫХ раздач (ПК)
+# ==========================================
+# СЛОВАРИ ДЛЯ ТЕЛЕГРАМА
+# ==========================================
 HEADERS_FREE = [
     "🔥 ЛУТАЕМ ХАЛЯВУ", "🚨 СВЕЖИЙ ДРОП", "⚡️ СРОЧНО НА АККАУНТ", 
     "🎁 ЗАВОЗ БЕСПЛАТНЫХ ИГР", "🎉 100% СКИДКА (БЕСПЛАТНО)",
@@ -19,7 +21,6 @@ HEADERS_FREE = [
     "🚀 ХАЛЯВНАЯ ИГРА", "💸 НОЛЬ РУБЛЕЙ, НОЛЬ КОПЕЕК",
     "📦 ЩЕДРЫЙ ПОДАРОК ГЕЙМЕРУ"
 ]
-
 HEADERS_DISCOUNT = ["📉 ЖАРКАЯ СКИДКА", "🏷️ ОТЛИЧНОЕ ПРЕДЛОЖЕНИЕ", "💥 БОЛЬШАЯ СКИДКА", "💰 ТОТАЛЬНЫЙ ЦЕНОПАД"]
 HEADERS_ROBLOX = ["🟥 ROBLOX ХАЛЯВА", "🎁 СВЕЖИЙ ЛУТ И КОДЫ ROBLOX", "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX"]
 HEADERS_GACHA = ["💎 НОВЫЕ ПРОМОКОДЫ", "✨ ХАЛЯВА HOYOVERSE", "🌸 ПРИМОГЕМЫ И НЕФРИТ"]
@@ -30,6 +31,36 @@ PRICE_PREFIXES = ["💸 Прайс:", "💰 Цена вопроса:", "💳 С�
 DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "📜 Сюжет:", "💡 Спойлер:"]
 
 BTN_GET_GAME = ["🏃‍♂️ Залутать", "⚡️ Перейти", "🔥 Посмотреть", "🎯 Забрать себе", "🛒 В магазин", "🎁 Активировать"]
+
+# ==========================================
+# СЛОВАРИ ДЛЯ ДЗЕНА И ОК (Повышенная уникальность)
+# ==========================================
+DZEN_HEADERS_FREE = [
+    "🔥 Очередная годнота подъехала:",
+    "🎁 Разработчики расщедрились, забираем:",
+    "⚡ Забираем на аккаунт, пока бесплатно:",
+    "🎉 Раздача дня, лутаем:",
+    "🎮 Отличное пополнение вашей библиотеки:",
+    "🤑 100% скидка на отличный проект:",
+    "🚀 Хватай, пока дают:",
+    "💸 Абсолютная халява, забираем:",
+    "📦 Новый подарок для геймеров:",
+    "🎯 Топовый подгон на сегодня:"
+]
+DZEN_HEADERS_DISCOUNT = [
+    "📉 Отличная скидка нарисовалась:",
+    "🏷️ Забираем по вкусной цене:",
+    "💥 Мощный ценопад на игру:",
+    "💰 Бережем кошелек, крутая скидка на:"
+]
+DZEN_LINK_TEXTS = [
+    "👉 Забрать игру на свой аккаунт",
+    "🎮 Добавить в библиотеку",
+    "⚡ Получить бесплатно",
+    "🚀 Перейти к раздаче",
+    "🎁 Забрать подарок",
+    "🛒 Открыть страницу в магазине"
+]
 
 def send_to_telegram(game):
     title = game.get("title", "Неизвестная игра")
@@ -50,30 +81,37 @@ def send_to_telegram(game):
             desc = desc[:157] + "..."
             
     tag_type = ""
+    # Выбор заголовков в зависимости от платформы
     if platform_key == "roblox" or "roblox" in platform.lower():
         header = random.choice(HEADERS_ROBLOX)
+        dzen_header = random.choice(HEADERS_ROBLOX)
         tag_type = "#roblox #роблокс"
     elif platform_key == "steam_new":
         header = random.choice(HEADERS_STEAM_NEW)
+        dzen_header = random.choice(HEADERS_STEAM_NEW)
         tag_type = "#steam #новинки #релиз"
     elif platform_key == "gacha":
         header = random.choice(HEADERS_GACHA)
+        dzen_header = random.choice(HEADERS_GACHA)
         tag_type = "#genshin #honkai #промокоды"
     elif platform_key == "mobile":
         header = random.choice(HEADERS_MOBILE)
+        dzen_header = random.choice(HEADERS_MOBILE)
         tag_type = "#mobile #мобильныеигры"
     elif is_free:
         header = random.choice(HEADERS_FREE)
+        dzen_header = random.choice(DZEN_HEADERS_FREE)
         tag_type = "#раздача #freegames"
     else:
         header = random.choice(HEADERS_DISCOUNT)
+        dzen_header = random.choice(DZEN_HEADERS_DISCOUNT)
         tag_type = "#скидки #deals"
 
     price_pref = random.choice(PRICE_PREFIXES)
     desc_pref = random.choice(DESC_PREFIXES)
             
     # ==========================================
-    # 1. ВЕРСИЯ ДЛЯ ОСНОВНОГО КАНАЛА (ОДНА КНОПКА НА ИГРУ)
+    # 1. ВЕРСИЯ ДЛЯ ОСНОВНОГО КАНАЛА
     # ==========================================
     main_caption = f"{header}: <b>{title}</b>\n\n"
     main_caption += f"🌐 <b>Платформа:</b> {platform}\n"
@@ -98,25 +136,23 @@ def send_to_telegram(game):
     }
 
     # ==========================================
-    # 2. ВЕРСИЯ ДЛЯ ДЗЕНА И ОК (БЕЗ КНОПОК)
+    # 2. ВЕРСИЯ ДЛЯ ДЗЕНА И ОК (Случайные фразы, без ссылок на ТГ)
     # ==========================================
-    dzen_caption = f"{header}: <b>{title}</b>\n\n"
+    dzen_caption = f"{dzen_header} <b>{title}</b>\n\n"
     dzen_caption += f"🌐 <b>Платформа:</b> {platform}\n\n"
     
-    # Показываем цену, если это скидка, а не раздача
     if not is_free:
         dzen_caption += f"🏷️ <b>Цена:</b> {price_raw}\n\n"
         
     if desc:
         dzen_caption += f"📖 {desc}\n\n"
         
-    # Добавляем фирменную фразу только для бесплатных раздач
     if is_free:
         dzen_caption += "⚡ <b>НЕТ ПРОСТО РАЗДАЕМ КТО УСПЕЛ ТОТ И СЬЕЛ)</b>\n\n"
         
-    dzen_caption += f"👉 <a href='{link}'>Забрать игру на свой аккаунт</a>\n\n"
-    dzen_caption += "<i>Больше раздач и скидок в нашем Telegram-канале: https://t.me/ggpro_free_games</i>"
-
+    # Случайный текст для ссылки
+    random_link_text = random.choice(DZEN_LINK_TEXTS)
+    dzen_caption += f"<a href='{link}'>{random_link_text}</a>\n"
 
     def send_request(target_chat_id, text_caption, markup=None):
         if not target_chat_id:
@@ -147,7 +183,7 @@ def send_to_telegram(game):
     send_request(TG_CHAT_ID, main_caption, main_markup)
     print(f"✅ Отправлено в основной ТГ: {title}")
 
-    # Теперь отправляем ВСЕ посты в буферный канал для Дзена
+    # Отправляем в буферный канал для Дзена
     if TG_DZEN_CHAT_ID:
         send_request(TG_DZEN_CHAT_ID, dzen_caption, markup=None)
         print(f"✅ Отправлено в буфер Дзена: {title}")

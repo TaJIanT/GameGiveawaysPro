@@ -33,7 +33,7 @@ DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "�
 BTN_GET_GAME = ["🏃‍♂️ Залутать", "⚡️ Перейти", "🔥 Посмотреть", "🎯 Забрать себе", "🛒 В магазин", "🎁 Активировать"]
 
 # ==========================================
-# СЛОВАРИ ДЛЯ ДЗЕНА И ОК (Повышенная уникальность)
+# СЛОВАРИ ДЛЯ ДЗЕНА И ОК (Уникальные заголовки)
 # ==========================================
 DZEN_HEADERS_FREE = [
     "🔥 Очередная годнота подъехала:",
@@ -62,7 +62,7 @@ DZEN_LINK_TEXTS = [
     "🛒 Открыть страницу в магазине"
 ]
 
-def send_to_telegram(game):
+def process_and_send_game(game):
     title = game.get("title", "Неизвестная игра")
     platform = game.get("platform", "PC")
     platform_key = game.get("platformkey", "").lower()
@@ -80,8 +80,7 @@ def send_to_telegram(game):
         if len(desc) > 160:
             desc = desc[:157] + "..."
             
-    tag_type = ""
-    # Выбор заголовков в зависимости от платформы
+    # Выбор тегов и заголовков для ТГ
     if platform_key == "roblox" or "roblox" in platform.lower():
         header = random.choice(HEADERS_ROBLOX)
         dzen_header = random.choice(HEADERS_ROBLOX)
@@ -110,9 +109,7 @@ def send_to_telegram(game):
     price_pref = random.choice(PRICE_PREFIXES)
     desc_pref = random.choice(DESC_PREFIXES)
             
-    # ==========================================
-    # 1. ВЕРСИЯ ДЛЯ ОСНОВНОГО КАНАЛА
-    # ==========================================
+    # 1. Текст для основного ТГ-канала
     main_caption = f"{header}: <b>{title}</b>\n\n"
     main_caption += f"🌐 <b>Платформа:</b> {platform}\n"
     
@@ -135,9 +132,7 @@ def send_to_telegram(game):
         ]
     }
 
-    # ==========================================
-    # 2. ВЕРСИЯ ДЛЯ ДЗЕНА И ОК (Случайные фразы, без ссылок на ТГ)
-    # ==========================================
+    # 2. Текст для буферного канала Дзена / ОК
     dzen_caption = f"{dzen_header} <b>{title}</b>\n\n"
     dzen_caption += f"🌐 <b>Платформа:</b> {platform}\n\n"
     
@@ -150,10 +145,10 @@ def send_to_telegram(game):
     if is_free:
         dzen_caption += "⚡ <b>НЕТ ПРОСТО РАЗДАЕМ КТО УСПЕЛ ТОТ И СЬЕЛ)</b>\n\n"
         
-    # Случайный текст для ссылки
     random_link_text = random.choice(DZEN_LINK_TEXTS)
-    dzen_caption += f"<a href='{link}'>{random_link_text}</a>\n"
+    dzen_caption += f"<a href='{link}'>{random_link_text}</a>"
 
+    # Функция отправки запроса в Telegram
     def send_request(target_chat_id, text_caption, markup=None):
         if not target_chat_id:
             return
@@ -183,7 +178,7 @@ def send_to_telegram(game):
     send_request(TG_CHAT_ID, main_caption, main_markup)
     print(f"✅ Отправлено в основной ТГ: {title}")
 
-    # Отправляем в буферный канал для Дзена
+    # Отправляем в буферный канал для Дзена (теперь идет ВСЁ)
     if TG_DZEN_CHAT_ID:
         send_request(TG_DZEN_CHAT_ID, dzen_caption, markup=None)
         print(f"✅ Отправлено в буфер Дзена: {title}")
@@ -242,34 +237,35 @@ def main():
 
     total_posted = 0
 
+    # Теперь все списки используют общую функцию отправки в оба канала
     if new_freebies:
         for game in new_freebies:
-            send_to_telegram(game)
+            process_and_send_game(game)
             time.sleep(2)
             total_posted += 1
 
     if roblox_items:
         for game in roblox_items:
-            send_to_telegram(game)
+            process_and_send_game(game)
             time.sleep(2)
             total_posted += 1
 
     if mobile_items:
         for game in mobile_items:
-            send_to_telegram(game)
+            process_and_send_game(game)
             time.sleep(2)
             total_posted += 1
 
     if discounts:
         random.shuffle(discounts)
         for game in discounts[:3]: 
-            send_to_telegram(game)
+            process_and_send_game(game)
             time.sleep(2)
             total_posted += 1
 
     if steam_new_items:
         for game in steam_new_items[:2]:  
-            send_to_telegram(game)
+            process_and_send_game(game)
             time.sleep(2)
             total_posted += 1
 
@@ -278,3 +274,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    

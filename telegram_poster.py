@@ -19,7 +19,7 @@ VK_GROUP_URL = "https://vk.com/club152331651"
 TG_CHANNEL_URL = "https://t.me/ggpro_free_games"
 
 # ==========================================
-# СЛОВАРИ ДЛЯ ТЕЛЕГРАМА (Агрессивный маркетинг)
+# СЛОВАРИ ДЛЯ ТЕЛЕГРАМА 
 # ==========================================
 HEADERS_FREE = [
     "🔥 <b>ЭПИЧНАЯ ХАЛЯВА</b>", "🚨 <b>АЛЕРТ: СВЕЖИЙ ДРОП</b>", "⚡️ <b>СРОЧНО НА АККАУНТ</b>", 
@@ -36,7 +36,7 @@ BTN_GET_GAME = ["🎮 Забрать игру", "⚡️ Залутать сей�
 BTN_GET_APP = ["💻 Наш авто-трекер на ПК", "🚀 Скачать GameGiveawaysPro", "🔔 Не пропускать раздачи (ПК)"]
 
 # ==========================================
-# СЛОВАРИ ДЛЯ ВКОНТАКТЕ (Красивая текстовая верстка)
+# СЛОВАРИ ДЛЯ ВКОНТАКТЕ
 # ==========================================
 VK_HEADERS_FREE = [
     "🔥 Очередная годнота подъехала!", "🎁 Разработчики расщедрились, лутаем:",
@@ -63,7 +63,6 @@ def process_and_send_game(game):
         if len(desc) > 180:
             desc = desc[:177] + "..."
             
-    # Определяем заголовки и теги
     if platform_key == "roblox" or "roblox" in platform.lower():
         header, vk_header, tag_type = random.choice(HEADERS_ROBLOX), random.choice(HEADERS_ROBLOX), "#roblox #роблокс"
     elif platform_key == "steam_new":
@@ -96,7 +95,6 @@ def process_and_send_game(game):
         
     main_caption += f"{tag_type} #{hashtag_plat}"
 
-    # Добавляем ТРИ кнопки: 1. Игра 2. Группа ВК 3. Скачать программу
     main_markup = {
         "inline_keyboard": [
             [{"text": random.choice(BTN_GET_GAME), "url": link}],
@@ -155,9 +153,9 @@ def process_and_send_game(game):
     send_request(TG_CHAT_ID, main_caption, main_markup)
     print(f"✅ Отправлено в Telegram: {title}")
 
-    # Отправляем в ВК
-    if img_url:
-        send_vk_wall_post(vk_caption, img_url)
+    # Отправляем в ВК (ПЕРЕДАЕМ ССЫЛКУ НА ИГРУ)
+    if link:
+        send_vk_wall_post(vk_caption, link)
 
 def get_unseen_items(nm, games):
     new_items = []

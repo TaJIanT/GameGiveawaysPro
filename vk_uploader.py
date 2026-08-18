@@ -12,12 +12,8 @@ def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     return re.sub(cleanr, '', raw_html)
 
-def send_vk_wall_post(html_text, img_url=None):
-    """
-    Публикует запись на стене группы.
-    Мы не загружаем картинку вручную (чтобы работал вечный токен группы).
-    ВКонтакте сам найдет ссылку в тексте и сделает из нее красивую кликабельную карточку!
-    """
+def send_vk_wall_post(html_text, game_link):
+    """Публикует запись на стене группы с автоматическим сниппетом (карточкой-ссылкой)"""
     if not VK_TOKEN:
         print("❌ Ошибка: VK_TOKEN не найден. Проверьте секреты GitHub.")
         return False
@@ -25,13 +21,14 @@ def send_vk_wall_post(html_text, img_url=None):
     text = clean_html(html_text)
     
     try:
-        # Отправляем только текст. ВК сам сгенерирует превью из ссылки!
+        # Отправляем текст и ПЕРЕДАЕМ ССЫЛКУ В ATTACHMENTS
         r_post = requests.post("https://api.vk.com/method/wall.post", data={
             "access_token": VK_TOKEN,
             "v": VK_API_VERSION,
             "owner_id": f"-{VK_GROUP_ID}",  # Минус обязателен для групп!
             "from_group": 1,
-            "message": text
+            "message": text,
+            "attachments": game_link  # <--- Вот эта магия создаст карточку с картинкой!
         }).json()
 
         if "response" in r_post:

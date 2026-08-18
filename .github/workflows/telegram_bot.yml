@@ -30,6 +30,7 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          VK_TOKEN: ${{ secrets.VK_TOKEN }}
         run: python telegram_poster.py
 
       - name: Сохранение памяти (кэша) бота
@@ -39,3 +40,4 @@ jobs:
           git add notification_history.json
           git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
           git push
+          

@@ -6,37 +6,44 @@ import random
 import requests
 from api import GameAPI
 from notifications import NotificationManager
-from vk_uploader import send_vk_wall_post  # Наш новый модуль ВК
+from vk_uploader import send_vk_wall_post
 
 TG_TOKEN = os.environ.get("TG_TOKEN")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID")
 
+# ==========================================
+# ВАЖНЫЕ ССЫЛКИ ПРОЕКТА
+# ==========================================
+APP_LINK = "https://github.com/TaJIanT/GameGiveawaysPro/releases/latest"
+VK_GROUP_URL = "https://vk.com/club152331651"
+TG_CHANNEL_URL = "https://t.me/ggpro_free_games"
+
+# ==========================================
+# СЛОВАРИ ДЛЯ ТЕЛЕГРАМА (Агрессивный маркетинг)
+# ==========================================
 HEADERS_FREE = [
-    "🔥 ЛУТАЕМ ХАЛЯВУ", "🚨 СВЕЖИЙ ДРОП", "⚡️ СРОЧНО НА АККАУНТ", 
-    "🎁 ЗАВОЗ БЕСПЛАТНЫХ ИГР", "🎉 100% СКИДКА (БЕСПЛАТНО)",
-    "🤑 ЗАБИРАЙ, ПОКА ДАЮТ", "🕹️ ПОПОЛНЕНИЕ БИБЛИОТЕКИ",
-    "🚀 ХАЛЯВНАЯ ИГРА", "💸 НОЛЬ РУБЛЕЙ, НОЛЬ КОПЕЕК",
-    "📦 ЩЕДРЫЙ ПОДАРОК ГЕЙМЕРУ"
+    "🔥 <b>ЭПИЧНАЯ ХАЛЯВА</b>", "🚨 <b>АЛЕРТ: СВЕЖИЙ ДРОП</b>", "⚡️ <b>СРОЧНО НА АККАУНТ</b>", 
+    "🎁 <b>ЖИРНАЯ РАЗДАЧА</b>", "🎉 <b>100% СКИДКА</b>",
+    "🤑 <b>ЛУТАЕМ ПОКА ДАЮТ</b>", "🕹️ <b>ПОПОЛНЕНИЕ БИБЛИОТЕКИ</b>"
 ]
-HEADERS_DISCOUNT = ["📉 ЖАРКАЯ СКИДКА", "🏷️ ОТЛИЧНОЕ ПРЕДЛОЖЕНИЕ", "💥 БОЛЬШАЯ СКИДКА", "💰 ТОТАЛЬНЫЙ ЦЕНОПАД"]
-HEADERS_ROBLOX = ["🟥 ROBLOX ХАЛЯВА", "🎁 СВЕЖИЙ ЛУТ И КОДЫ ROBLOX", "⚡️ ПРОМОКОДЫ И ВЕЩИ ROBLOX"]
-HEADERS_GACHA = ["💎 НОВЫЕ ПРОМОКОДЫ", "✨ ХАЛЯВА HOYOVERSE", "🌸 ПРИМОГЕМЫ И НЕФРИТ"]
-HEADERS_MOBILE = ["📱 ЛУТ ДЛЯ МОБИЛОК", "🎯 МОБИЛЬНАЯ ХАЛЯВА", "🔥 ПРОМОКОДЫ НА ТЕЛЕФОН"]
-HEADERS_STEAM_NEW = ["🎮 СВЕЖИЙ РЕЛИЗ В STEAM", "🚀 НОВИНКА В STEAM", "🔥 ТОЛЬКО ЧТО ВЫШЛО В STEAM"]
+HEADERS_DISCOUNT = ["📉 <b>ЖАРКАЯ СКИДКА</b>", "🏷️ <b>ОТЛИЧНОЕ ПРЕДЛОЖЕНИЕ</b>", "💥 <b>ЦЕНОПАД</b>"]
+HEADERS_ROBLOX = ["🟥 <b>ROBLOX ХАЛЯВА</b>", "🎁 <b>СВЕЖИЙ ЛУТ ROBLOX</b>"]
+HEADERS_GACHA = ["💎 <b>НОВЫЕ ПРОМОКОДЫ</b>", "✨ <b>ХАЛЯВА HOYOVERSE</b>"]
+HEADERS_MOBILE = ["📱 <b>ЛУТ ДЛЯ МОБИЛОК</b>", "🎯 <b>МОБИЛЬНАЯ ХАЛЯВА</b>"]
+HEADERS_STEAM_NEW = ["🎮 <b>СВЕЖИЙ РЕЛИЗ В STEAM</b>", "🚀 <b>НОВИНКА В МАГАЗИНЕ</b>"]
 
-PRICE_PREFIXES = ["💸 Прайс:", "💰 Цена вопроса:", "💳 Стоило:"]
-DESC_PREFIXES = ["📖 О чём игра:", "👀 Краткая база:", "📜 Сюжет:", "💡 Спойлер:"]
-BTN_GET_GAME = ["🏃‍♂️ Залутать", "⚡️ Перейти", "🔥 Посмотреть", "🎯 Забрать себе", "🛒 В магазин", "🎁 Активировать"]
+BTN_GET_GAME = ["🎮 Забрать игру", "⚡️ Залутать сейчас", "🔥 Добавить в библиотеку", "🎯 Перейти к раздаче"]
+BTN_GET_APP = ["💻 Наш авто-трекер на ПК", "🚀 Скачать GameGiveawaysPro", "🔔 Не пропускать раздачи (ПК)"]
 
+# ==========================================
+# СЛОВАРИ ДЛЯ ВКОНТАКТЕ (Красивая текстовая верстка)
+# ==========================================
 VK_HEADERS_FREE = [
-    "🔥 Очередная годнота подъехала:", "🎁 Разработчики расщедрились, забираем:",
-    "⚡ Забираем на аккаунт, пока бесплатно:", "🎉 Раздача дня, лутаем:",
-    "🎮 Отличное пополнение вашей библиотеки:", "🤑 100% скидка на отличный проект:",
-    "🚀 Хватай, пока дают:", "💸 Абсолютная халява, забираем:",
-    "📦 Новый подарок для геймеров:", "🎯 Топовый подгон на сегодня:"
+    "🔥 Очередная годнота подъехала!", "🎁 Разработчики расщедрились, лутаем:",
+    "⚡ Забираем на аккаунт, пока полностью бесплатно!", "🎉 Раздача дня, успевайте забрать:"
 ]
-VK_HEADERS_DISCOUNT = ["📉 Отличная скидка нарисовалась:", "🏷️ Забираем по вкусной цене:", "💥 Мощный ценопад на игру:", "💰 Бережем кошелек, крутая скидка на:"]
-VK_LINK_TEXTS = ["👉 Забрать игру на свой аккаунт", "🎮 Добавить в библиотеку", "⚡ Получить бесплатно", "🚀 Перейти к раздаче", "🎁 Забрать подарок", "🛒 Открыть страницу в магазине"]
+VK_HEADERS_DISCOUNT = ["📉 Отличная скидка нарисовалась:", "🏷️ Забираем по вкусной цене:"]
+VK_LINK_TEXTS = ["👉 ССЫЛКА НА ИГРУ", "🎮 ЗАБРАТЬ В СВОЮ БИБЛИОТЕКУ", "⚡ ПЕРЕЙТИ К РАЗДАЧЕ"]
 
 def process_and_send_game(game):
     title = game.get("title", "Неизвестная игра")
@@ -53,9 +60,10 @@ def process_and_send_game(game):
     
     if desc:
         desc = desc.replace("<br>", "").replace("\n", " ")
-        if len(desc) > 160:
-            desc = desc[:157] + "..."
+        if len(desc) > 180:
+            desc = desc[:177] + "..."
             
+    # Определяем заголовки и теги
     if platform_key == "roblox" or "roblox" in platform.lower():
         header, vk_header, tag_type = random.choice(HEADERS_ROBLOX), random.choice(HEADERS_ROBLOX), "#roblox #роблокс"
     elif platform_key == "steam_new":
@@ -69,28 +77,64 @@ def process_and_send_game(game):
     else:
         header, vk_header, tag_type = random.choice(HEADERS_DISCOUNT), random.choice(VK_HEADERS_DISCOUNT), "#скидки #deals"
 
-    price_pref = random.choice(PRICE_PREFIXES)
-    desc_pref = random.choice(DESC_PREFIXES)
-            
-    # ТГ Текст
-    main_caption = f"{header}: <b>{title}</b>\n\n🌐 <b>Платформа:</b> {platform}\n"
-    if is_free:
-        main_caption += f"{price_pref} <s>${worth:.2f}</s> ➡️ <b>0₽ (FREE)</b>\n" if worth > 0 else f"{price_pref} <b>100% Бесплатно!</b>\n"
-    else:
-        main_caption += f"🏷️ <b>Цена:</b> {price_raw}\n"
-    if desc: main_caption += f"\n{desc_pref} <i>{desc}</i>\n"
-    main_caption += f"\n{tag_type} #{hashtag_plat}"
-
-    main_markup = {"inline_keyboard": [[{"text": random.choice(BTN_GET_GAME), "url": link}]]}
-
-    # ВК Текст
-    vk_caption = f"{vk_header} {title}\n\n🌐 Платформа: {platform}\n\n"
-    if not is_free: vk_caption += f"🏷️ Цена: {price_raw}\n\n"
-    if desc: vk_caption += f"📖 {desc}\n\n"
-    if is_free: vk_caption += "⚡ НЕТ ПРОСТО РАЗДАЕМ КТО УСПЕЛ ТОТ И СЬЕЛ)\n\n"
+    # ==========================================
+    # 1. ФОРМИРУЕМ ПОСТ ДЛЯ TELEGRAM
+    # ==========================================
+    main_caption = f"{header}\n\n"
+    main_caption += f"📌 <b>Название:</b> {title}\n"
+    main_caption += f"🌐 <b>Магазин:</b> {platform}\n\n"
     
-    vk_caption += f"{random.choice(VK_LINK_TEXTS)}:\n{link}\n\nБольше халявы в нашем ТГ канале: @ggpro_free_games"
+    if is_free:
+        if worth > 0:
+            main_caption += f"💳 Без раздачи: <s>${worth:.2f}</s>\n"
+        main_caption += f"🎁 Сейчас: <b>0₽ [БЕСПЛАТНО]</b>\n\n"
+    else:
+        main_caption += f"🏷️ <b>Цена по скидке:</b> {price_raw}\n\n"
+        
+    if desc:
+        main_caption += f"📖 <b>Кратко об игре:</b>\n<i>{desc}</i>\n\n"
+        
+    main_caption += f"{tag_type} #{hashtag_plat}"
 
+    # Добавляем ТРИ кнопки: 1. Игра 2. Группа ВК 3. Скачать программу
+    main_markup = {
+        "inline_keyboard": [
+            [{"text": random.choice(BTN_GET_GAME), "url": link}],
+            [{"text": "🔵 Мы ВКонтакте", "url": VK_GROUP_URL}],
+            [{"text": random.choice(BTN_GET_APP), "url": APP_LINK}]
+        ]
+    }
+
+    # ==========================================
+    # 2. ФОРМИРУЕМ ПОСТ ДЛЯ ВКОНТАКТЕ
+    # ==========================================
+    vk_caption = f"{vk_header}\n\n"
+    vk_caption += f"📌 Игра: {title}\n"
+    vk_caption += f"🌐 Площадка: {platform}\n"
+    
+    if is_free:
+        if worth > 0:
+            vk_caption += f"💳 Обычная цена: ${worth:.2f} ➡️ 0₽\n"
+        vk_caption += f"🎁 Статус: 100% БЕСПЛАТНО\n\n"
+    else:
+        vk_caption += f"🏷️ Цена: {price_raw}\n\n"
+        
+    if desc:
+        vk_caption += f"📖 Об игре:\n{desc}\n\n"
+        
+    vk_caption += f"───────────────\n"
+    vk_caption += f"🔻 {random.choice(VK_LINK_TEXTS)} 🔻\n"
+    vk_caption += f"{link}\n"
+    vk_caption += f"───────────────\n\n"
+    
+    vk_caption += f"✈️ Больше эксклюзивной халявы в нашем Telegram-канале:\n"
+    vk_caption += f"👉 {TG_CHANNEL_URL}\n\n"
+    vk_caption += f"⚡ Хочешь узнавать о раздачах прямо на рабочем столе ПК?\n"
+    vk_caption += f"💻 Скачивай нашу программу: {APP_LINK}"
+
+    # ==========================================
+    # ОТПРАВКА
+    # ==========================================
     def send_request(target_chat_id, text_caption, markup=None):
         if not target_chat_id: return
         try:

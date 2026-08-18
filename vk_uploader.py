@@ -12,8 +12,12 @@ def clean_html(raw_html):
     cleanr = re.compile('<.*?>')
     return re.sub(cleanr, '', raw_html)
 
-def send_vk_wall_post(html_text, game_link):
-    """Публикует запись на стене группы с автоматическим сниппетом (карточкой-ссылкой)"""
+def send_vk_wall_post(html_text):
+    """
+    Публикует запись на стене группы.
+    ВКонтакте сам найдет ссылку в тексте и сделает из нее сниппет, 
+    а если сайт (как Steam) заблокирует бота ВК, пост всё равно выйдет без ошибки!
+    """
     if not VK_TOKEN:
         print("❌ Ошибка: VK_TOKEN не найден. Проверьте секреты GitHub.")
         return False
@@ -21,14 +25,13 @@ def send_vk_wall_post(html_text, game_link):
     text = clean_html(html_text)
     
     try:
-        # Отправляем текст и ПЕРЕДАЕМ ССЫЛКУ В ATTACHMENTS
         r_post = requests.post("https://api.vk.com/method/wall.post", data={
             "access_token": VK_TOKEN,
             "v": VK_API_VERSION,
             "owner_id": f"-{VK_GROUP_ID}",  # Минус обязателен для групп!
             "from_group": 1,
-            "message": text,
-            "attachments": game_link  # <--- Вот эта магия создаст карточку с картинкой!
+            "message": text
+            # Мы СПЕЦИАЛЬНО убрали attachments, чтобы избежать ошибки 100
         }).json()
 
         if "response" in r_post:
@@ -41,4 +44,3 @@ def send_vk_wall_post(html_text, game_link):
     except Exception as e:
         print(f"❌ Ошибка при отправке в ВК: {e}")
         return False
-        

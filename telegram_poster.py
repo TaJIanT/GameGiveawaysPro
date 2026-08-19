@@ -4,6 +4,7 @@ import sys
 import time
 import random
 import requests
+import re
 from api import GameAPI
 from notifications import NotificationManager
 from vk_uploader import send_vk_wall_post
@@ -191,8 +192,9 @@ def process_and_send_game(game):
     send_request(TG_CHAT_ID, main_caption, main_markup)
     print(f"✅ Отправлено в Telegram: {title}")
 
-    # Отправляем в ВК (передаем и оригинал картинки, и ссылку на твой баннер)
-    send_vk_wall_post(vk_caption, img_url, fallback_url)
+    # Отправляем в ВК (очищаем от любых HTML-тегов)
+    vk_caption_clean = re.sub(r'<.*?>', '', vk_caption)
+    send_vk_wall_post(vk_caption_clean, img_url, fallback_url)
 
 def get_unseen_items(nm, games):
     new_items = []
@@ -255,5 +257,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
     

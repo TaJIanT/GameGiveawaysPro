@@ -539,66 +539,68 @@ def process_and_send_game(game):
     # Отправляем в ВК (передаем и оригинал картинки, и ссылку на твой баннер)
     send_vk_wall_post(vk_caption, img_url, fallback_url)
 
-def get_unseen_items(nm, games):
-    new_items = []
-    now = nm._now_ts()
-    for g in games or []:
-        gid = nm._game_id(g)
-        if gid not in nm.seen:
-            new_items.append(g)
-            nm.seen[gid] = now
-    if new_items: nm._save_seen()
-    return new_items
+# -*- coding: utf-8 -*-
+import os, sys, time, random, requests
+from api import GameAPI
+from notifications import NotificationManager
+from vk_uploader import send_vk_wall_post
+
+TG_TOKEN = os.environ.get("TG_TOKEN")
+TG_CHAT_ID = os.environ.get("TG_CHAT_ID")
+APP_LINK = "https://github.com/TaJIanT/GameGiveawaysPro/releases/latest"
+VK_GROUP_URL = "https://vk.com/club152331651"
+TG_CHANNEL_URL = "https://t.me/ggpro_free_games"
+
+FALLBACK_IMAGES = {
+    "steam": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091450.png",
+    "epic": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091513.png",
+    "steam_keys": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091548.png",
+    "gog": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091635.png",
+    "roblox": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091659.png",
+    "gacha": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091811.png",
+    "gacha_sale": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091948.png",
+    "vkplay": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_092147.png",
+    "mobile": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_092302.png",
+    "default": "https://raw.githubusercontent.com/TaJIanT/GameGiveawaysPro/main/images/IMG_20260819_091450.png"
+}
+
+def process_and_send_game(game):
+    title = game.get("title", "Game")
+    link = game.get("link", "")
+    img_url = game.get("image", "")
+    platform_key = game.get("platformkey", "").lower()
+    
+    # Логика заглушки
+    fallback_category = "default"
+    if "roblox" in platform_key: fallback_category = "roblox"
+    elif "steam" in platform_key and "key" in title.lower(): fallback_category = "steam_keys"
+    elif "steam" in platform_key: fallback_category = "steam"
+    elif "epic" in platform_key: fallback_category = "epic"
+    elif "gog" in platform_key: fallback_category = "gog"
+    elif "gacha" in platform_key: fallback_category = "gacha" if "code" in title.lower() else "gacha_sale"
+    elif "vkplay" in platform_key: fallback_category = "vkplay"
+    elif "mobile" in platform_key: fallback_category = "mobile"
+    
+    fallback_url = FALLBACK_IMAGES.get(fallback_category, FALLBACK_IMAGES["default"])
+
+    # Отправка в ТГ
+    caption = f"🔥 <b>{title}</b>\n\n✈️ ТГ: {TG_CHANNEL_URL}"
+    try:
+        requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto", json={
+            "chat_id": TG_CHAT_ID, "photo": img_url, "caption": caption, "parse_mode": "HTML"
+        })
+    except: pass
+
+    # Отправка в ВК (с загрузкой фото или заглушкой)
+    vk_text = f"🎮 Новая раздача: {title}\n\n👉 {link}\n\n✈️ Наш ТГ: {TG_CHANNEL_URL}"
+    send_vk_wall_post(vk_text, img_url, fallback_url)
 
 def main():
-    if not TG_TOKEN or not TG_CHAT_ID:
-        print("❌ ОШИБКА: Секреты не найдены!")
-        sys.exit(1)
-
-    print("🤖 Запуск парсера GameGiveawaysPro...")
     api = GameAPI(usegamerpower=True)
-    nm = NotificationManager(parent=None)
-    
-    raw_free = []
-    for func in [api.fetch_cheapshark_free, api.fetch_gamerpower_pc, api.fetch_gamerpower_loot]:
-        try: raw_free.extend(func(15))
-        except: pass
-    
-    free_games = [g for g in raw_free if str(g.get("price", "")).strip().upper() == "FREE" and "gacha" not in g.get("platformkey", "") and "mobile" not in g.get("platformkey", "")]
-    new_freebies = get_unseen_items(nm, free_games)
+    nm = NotificationManager()
+    games = api.fetch_gamerpower_pc(10)
+    for game in games:
+        process_and_send_game(game)
+        time.sleep(2)
 
-    roblox_items = []
-    try: roblox_items = get_unseen_items(nm, api.fetch_roblox_loot(limit=10))
-    except: pass
-
-    mobile_items = []
-    try: mobile_items = get_unseen_items(nm, api.fetch_gacha_mobile_loot(limit=10))
-    except: pass
-
-    discounts = []
-    try:
-        discounts.extend(get_unseen_items(nm, api.fetch_cheapshark_discounts(limit=25, max_price=50.0, min_savings=10.0)))
-        discounts.extend(get_unseen_items(nm, api.fetch_vkplay_discounts(limit=10, min_savings=10.0)))
-    except: pass
-
-    steam_new = []
-    try: steam_new = get_unseen_items(nm, api.fetch_steam_new_releases(limit=10))
-    except: pass
-
-    total_posted = 0
-
-    for game_list, limit in [(new_freebies, None), (roblox_items, None), (mobile_items, None), (discounts, 3), (steam_new, 2)]:
-        if game_list:
-            if limit: random.shuffle(game_list)
-            for game in (game_list[:limit] if limit else game_list):
-                process_and_send_game(game)
-                time.sleep(2)
-                total_posted += 1
-
-    if total_posted == 0:
-        print("🤷‍♂️ Новых раздач пока нет.")
-
-if __name__ == '__main__':
-    main()
-
-    
+if __name__ == '__main__': main()

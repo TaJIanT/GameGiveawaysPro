@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Скачивание кода
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Установка Python
         uses: actions/setup-python@v5
@@ -32,8 +34,14 @@ jobs:
           VK_TOKEN: ${{ secrets.VK_TOKEN }}
         run: python telegram_poster.py
 
-            - name: Сохранение памяти (кэша) бота
+      - name: Сохранение памяти (кэша) бота
         run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase
+          git add notification_history.json
+          git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
+          git push
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git pull origin main --rebase --autostash

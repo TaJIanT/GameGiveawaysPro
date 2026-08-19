@@ -39,4 +39,3 @@ jobs:
           git add notification_history.json
           git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
           git push
-

@@ -51,3 +51,4 @@ def send_vk_wall_post(html_text, img_url=None, fallback_url=None):
 
     r = requests.post("https://api.vk.com/method/wall.post", data=post_data).json()
     return "response" in r
+

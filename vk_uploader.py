@@ -16,7 +16,6 @@ def _upload_photo_to_vk(img_url):
             
         img_data = r_img.content
         
-        # Запрашиваем сервер для загрузки
         print("🔄 Запрашиваем сервер ВК для загрузки фото...")
         r_server = requests.get("https://api.vk.com/method/photos.getWallUploadServer", params={
             "access_token": VK_TOKEN, "v": VK_API_VERSION, "group_id": VK_GROUP_ID
@@ -26,7 +25,6 @@ def _upload_photo_to_vk(img_url):
             print(f"⚠️ Ошибка получения сервера ВК: {r_server['error']}")
             return None
         
-        # Отправляем файл
         upload_url = r_server['response']['upload_url']
         files = {'photo': ('cover.jpg', img_data, 'image/jpeg')}
         r_upload = requests.post(upload_url, files=files).json()
@@ -35,7 +33,6 @@ def _upload_photo_to_vk(img_url):
             print(f"⚠️ Ошибка загрузки файла на сервер ВК: {r_upload}")
             return None
 
-        # Сохраняем фото
         r_save = requests.post("https://api.vk.com/method/photos.saveWallPhoto", data={
             "access_token": VK_TOKEN, "v": VK_API_VERSION, "group_id": VK_GROUP_ID,
             "server": r_upload.get('server'), "photo": r_upload.get('photo'), "hash": r_upload.get('hash')

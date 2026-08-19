@@ -2,14 +2,14 @@ name: Telegram Auto Poster
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Запуск каждые 30 минут
-  workflow_dispatch: # Позволяет запустить скрипт вручную кнопкой
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
 jobs:
   post_giveaways:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Права на сохранение файла кэша обратно в репозиторий
+      contents: write
 
     steps:
       - name: Скачивание кода
@@ -22,8 +22,7 @@ jobs:
 
       - name: Установка зависимостей
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-tk
+          python -m pip install --upgrade pip
           pip install requests customtkinter pillow pystray
 
       - name: Запуск Telegram Бота
@@ -40,4 +39,3 @@ jobs:
           git add notification_history.json
           git commit -m "🤖 Бот: обновление базы отправленных игр" || exit 0
           git push
-          

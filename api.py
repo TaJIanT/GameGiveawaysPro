@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import requests
 import json
 import os
@@ -471,4 +471,30 @@ class GameAPI:
             games.append({
                 "id": f"steam-new-{game_id}",
                 "title": title,
-   
+                "platform": "Steam (Новинка)",
+                "platformkey": "steam_new",
+                "genre": "Релиз в Steam",
+                "developer": "Steam",
+                "description": desc,
+                "worth": orig_price,
+                "price": price_str,
+                "period": "Релиз",
+                "image": item.get("large_capsule_image") or item.get("header_image") or PLACEHOLDER_IMG,
+                "link": f"https://store.steampowered.com/app/{game_id}/",
+                "hot": True,
+                "ratingscore": 10.0,
+                "source": "Steam Store",
+                "tags": ["Steam", "NewRelease"],
+                "end_at": None,
+            })
+            if len(games) >= limit:
+                break
+        return games
+
+    def store_name(self, storeid):
+        return {
+            "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
+            "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
+            "25": "Epic Games", "30": "IndieGala"
+        }.get(storeid, "Store")
+     

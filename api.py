@@ -38,7 +38,13 @@ class GameAPI:
             encoded_text = urllib.parse.quote(clean_text)
             url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q={encoded_text}"
             
-            r = self.session.get(url, timeout=5)
+            # Маскируемся под обычный браузер Chrome, чтобы Google не блокировал переводы
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            # Делаем запрос в обход стандартной сессии бота
+            r = requests.get(url, headers=headers, timeout=5)
+            
             if r.status_code == 200:
                 data = r.json()
                 translated = "".join([sentence[0] for sentence in data[0]])
@@ -464,31 +470,5 @@ class GameAPI:
 
             games.append({
                 "id": f"steam-new-{game_id}",
-                "title": title,
-                "platform": "Steam (Новинка)",
-                "platformkey": "steam_new",
-                "genre": "Релиз в Steam",
-                "developer": "Steam",
-                "description": desc,
-                "worth": orig_price,
-                "price": price_str,
-                "period": "Релиз",
-                "image": item.get("large_capsule_image") or item.get("header_image") or PLACEHOLDER_IMG,
-                "link": f"https://store.steampowered.com/app/{game_id}/",
-                "hot": True,
-                "ratingscore": 10.0,
-                "source": "Steam Store",
-                "tags": ["Steam", "NewRelease"],
-                "end_at": None,
-            })
-            if len(games) >= limit:
-                break
-        return games
-
-    def store_name(self, storeid):
-        return {
-            "1": "Steam", "2": "GamersGate", "3": "GreenManGaming", 
-            "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
-            "25": "Epic Games", "30": "IndieGala"
-        }.get(storeid, "Store")
-        
+                "title": title, 
+   

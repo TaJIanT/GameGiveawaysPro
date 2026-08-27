@@ -16,8 +16,16 @@ TG_CHAT_ID = os.environ.get("TG_CHAT_ID")
 # ВАЖНЫЕ ССЫЛКИ ПРОЕКТА
 # ==========================================
 APP_LINK = "https://github.com/TaJIanT/GameGiveawaysPro/releases/latest"
-VK_GROUP_URL = "https://vk.com/club152331651"
+VK_GROUP_URL = "https://vk.ru/gamegiveawaysprokanal"
 TG_CHANNEL_URL = "https://t.me/ggpro_free_games"
+
+# ==========================================
+# ПОПУЛЯРНЫЕ ТЕГИ ДЛЯ РАНДОМИЗАЦИИ
+# ==========================================
+POPULAR_TAGS = [
+    "#игры", "#гейминг", "#халява", "#скидки", "#бесплатно", 
+    "#раздачаигр", "#вочтопоиграть", "#игровыеновости", "#pcgames", "#видеоигры"
+]
 
 # ==========================================
 # ФИРМЕННЫЕ БАННЕРЫ С GITHUB
@@ -75,12 +83,15 @@ def process_and_send_game(game):
     is_free = price_raw.upper() == "FREE"
     hashtag_plat = platform.replace(" ", "").replace("-", "").replace("®", "").replace("™", "").replace("(", "").replace(")", "")
     
+    # Генерация 3 случайных популярных тегов
+    random_tags = " ".join(random.sample(POPULAR_TAGS, 3))
+    
     if desc:
         desc = desc.replace("<br>", "").replace("\n", " ")
         if len(desc) > 180:
             desc = desc[:177] + "..."
             
-    # Определяем заголовки и теги
+    # Определяем заголовки и основные теги
     if platform_key == "roblox" or "roblox" in platform.lower():
         header, vk_header, tag_type = random.choice(HEADERS_ROBLOX), random.choice(HEADERS_ROBLOX), "#roblox #роблокс"
     elif platform_key == "steam_new":
@@ -93,6 +104,9 @@ def process_and_send_game(game):
         header, vk_header, tag_type = random.choice(HEADERS_FREE), random.choice(VK_HEADERS_FREE), "#раздача #freegames"
     else:
         header, vk_header, tag_type = random.choice(HEADERS_DISCOUNT), random.choice(VK_HEADERS_DISCOUNT), "#скидки #deals"
+
+    # Итоговая строка тегов для поста (основные + рандомные популярные)
+    final_tags = f"{tag_type} #{hashtag_plat} {random_tags}"
 
     # Логика выбора правильного баннера-заглушки
     fallback_category = "default"
@@ -132,7 +146,7 @@ def process_and_send_game(game):
     if desc:
         main_caption += f"📖 <b>Кратко об игре:</b>\n<i>{desc}</i>\n\n"
         
-    main_caption += f"{tag_type} #{hashtag_plat}"
+    main_caption += final_tags
 
     main_markup = {
         "inline_keyboard": [
@@ -167,7 +181,9 @@ def process_and_send_game(game):
     vk_caption += f"✈️ Больше эксклюзивной халявы в нашем Telegram-канале:\n"
     vk_caption += f"👉 {TG_CHANNEL_URL}\n\n"
     vk_caption += f"⚡ Хочешь узнавать о раздачах прямо на рабочем столе ПК?\n"
-    vk_caption += f"💻 Скачивай нашу программу: {APP_LINK}"
+    vk_caption += f"💻 Скачивай нашу программу: {APP_LINK}\n\n"
+    
+    vk_caption += final_tags
 
     # ==========================================
     # ОТПРАВКА
@@ -192,7 +208,7 @@ def process_and_send_game(game):
     send_request(TG_CHAT_ID, main_caption, main_markup)
     print(f"✅ Отправлено в Telegram: {title}")
 
-    # Отправляем в ВК (очищаем от любых HTML-тегов)
+    # Отправляем в ВК (очищаем от любых HTML-тегов, но сохраняем наши хештеги)
     vk_caption_clean = re.sub(r'<.*?>', '', vk_caption)
     send_vk_wall_post(vk_caption_clean, img_url, fallback_url)
 

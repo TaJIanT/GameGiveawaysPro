@@ -36,21 +36,27 @@ class GameAPI:
         try:
             clean_text = text[:400] 
             encoded_text = urllib.parse.quote(clean_text)
-            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q={encoded_text}"
             
-            # Маскируемся под обычный браузер Chrome, чтобы Google не блокировал переводы
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            # Делаем запрос в обход стандартной сессии бота
-            r = requests.get(url, headers=headers, timeout=5)
-            
+            # Вариант 1: MyMemory API (Надежный бесплатный сервис, не банит IP)
+            url_mm = f"https://api.mymemory.translated.net/get?q={encoded_text}&langpair=en|ru"
+            r = requests.get(url_mm, timeout=5)
             if r.status_code == 200:
                 data = r.json()
-                translated = "".join([sentence[0] for sentence in data[0]])
-                return translated
+                translated = data.get("responseData", {}).get("translatedText", "")
+                if translated and "MYMEMORY" not in translated:
+                    return translated
+
+            # Вариант 2: Запасной шлюз Google (если MyMemory вдруг недоступен)
+            url_google = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q={encoded_text}"
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            r2 = requests.get(url_google, headers=headers, timeout=5)
+            if r2.status_code == 200:
+                data2 = r2.json()
+                return "".join([sentence[0] for sentence in data2[0]])
+                
         except Exception as e:
             print(f"⚠️ Ошибка перевода: {e}")
+            
         return text 
 
     def _get_cheapshark(self, target_url):
@@ -497,4 +503,4 @@ class GameAPI:
             "7": "GOG", "11": "Humble Store", "15": "Fanatical", 
             "25": "Epic Games", "30": "IndieGala"
         }.get(storeid, "Store")
-     
+        

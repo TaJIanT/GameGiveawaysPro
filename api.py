@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 import requests
 import json
 import os
@@ -470,5 +470,5 @@ class GameAPI:
 
             games.append({
                 "id": f"steam-new-{game_id}",
-                "title": title, 
+                "title": title,
    

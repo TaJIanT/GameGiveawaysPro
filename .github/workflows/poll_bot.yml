@@ -1,0 +1,43 @@
+name: Daily Poll Poster
+
+on:
+  schedule:
+    # Запуск каждый день в 15:00 по UTC (Это 18:00 по Москве)
+    - cron: '0 15 * * *'
+  workflow_dispatch: # Позволяет запустить вручную для теста
+
+jobs:
+  post_poll:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Скачивание кода
+        uses: actions/checkout@v4
+
+      - name: Установка Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Установка зависимостей
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Запуск публикации опроса
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          VK_TOKEN: ${{ secrets.VK_TOKEN }} # Впишите сюда те же названия, что и в главном скрипте
+          VK_GROUP_ID: ${{ secrets.VK_GROUP_ID }} 
+        run: python poll_poster.py
+
+      - name: Сохранение базы опросов
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add polls.json
+          git commit -m "🤖 Бот: опубликован опрос, база обновлена" || exit 0
+          git push

@@ -3,7 +3,7 @@ name: Daily Poll Poster
 on:
   schedule:
     # Запуск каждый день в 15:00 по UTC (Это 18:00 по Москве)
-    - cron: '0 15 * * *'
+    - cron: '17 15 * * *'
   workflow_dispatch: # Позволяет запустить вручную для теста
 
 jobs:

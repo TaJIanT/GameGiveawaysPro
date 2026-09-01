@@ -9,12 +9,19 @@ VK_API_VERSION = "5.193"
 def _upload_photo_to_vk(img_url):
     try:
         print(f"🔄 Скачиваем картинку: {img_url}")
-        r_img = requests.get(img_url, timeout=10)
+        # Добавляем User-Agent, чтобы Steam не отдавал заглушки или мусор
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        r_img = requests.get(img_url, headers=headers, timeout=10)
+        
         if r_img.status_code != 200:
-            print(f"⚠️ Ошибка скачивания картинки (код {r_img.status_code}). Возможно, репозиторий приватный!")
+            print(f"⚠️ Ошибка скачивания картинки (код {r_img.status_code}).")
             return None
             
         img_data = r_img.content
+        
+        # Динамически получаем реальный тип файла от Steam
+        content_type = r_img.headers.get('Content-Type', 'image/jpeg')
+        ext = 'png' if 'png' in content_type else 'jpg'
         
         print("🔄 Запрашиваем сервер ВК для загрузки фото...")
         r_server = requests.get("https://api.vk.com/method/photos.getWallUploadServer", params={
@@ -26,7 +33,9 @@ def _upload_photo_to_vk(img_url):
             return None
         
         upload_url = r_server['response']['upload_url']
-        files = {'photo': ('cover.jpg', img_data, 'image/jpeg')}
+        
+        # Передаем ВК точное расширение и правильный MIME-тип
+        files = {'photo': (f'cover.{ext}', img_data, content_type)}
         r_upload = requests.post(upload_url, files=files).json()
 
         if "error" in r_upload or not r_upload.get('photo'):

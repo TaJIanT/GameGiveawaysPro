@@ -41,3 +41,5 @@ jobs:
           git add polls.json
           git commit -m "🤖 Бот: опубликован опрос, база обновлена" || exit 0
           git push
+
+

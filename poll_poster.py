@@ -20,7 +20,7 @@ def save_polls(polls):
         json.dump(polls, f, ensure_ascii=False, indent=2)
 
 def send_tg_poll(question, options):
-    """Отправляет нативный опрос в Telegram"""
+    """Отправляет нативный опрос в Telegram и возвращает статус успеха"""
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPoll"
     payload = {
         "chat_id": TG_CHAT_ID,
@@ -33,11 +33,13 @@ def send_tg_poll(question, options):
         r = requests.post(url, json=payload, timeout=10)
         r.raise_for_status()
         print("✅ Опрос успешно отправлен в Telegram")
+        return True
     except Exception as e:
         print(f"❌ Ошибка отправки опроса в ТГ: {e}")
+        return False
 
 def send_vk_poll_post(question, options):
-    """Отправляет текстовый опрос во ВКонтакте с призывом к комментам"""
+    """Отправляет текстовый опрос во ВКонтакте с призывом к комментам и возвращает статус успеха"""
     # Эмодзи-цифры для красивого оформления в ВК
     numbers = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
     
@@ -50,10 +52,14 @@ def send_vk_poll_post(question, options):
     vk_text += "\n👇 Пишите цифру или свой развернутый ответ в комментарии! Посмотрим, кого здесь больше!"
     
     try:
-        send_vk_wall_post(vk_text, "", "")
-        print("✅ Опрос успешно отправлен во ВКонтакте")
+        # send_vk_wall_post возвращает True/False
+        success = send_vk_wall_post(vk_text, "", "")
+        if success:
+            print("✅ Опрос успешно отправлен во ВКонтакте")
+        return success
     except Exception as e:
         print(f"❌ Ошибка отправки опроса в ВК: {e}")
+        return False
 
 def main():
     if not TG_TOKEN or not TG_CHAT_ID:
@@ -69,23 +75,25 @@ def main():
         print("🤷‍♂️ Все опросы из базы закончились! Нужно добавить новые.")
         return
 
-    # Берем первый доступный опрос
-    current_poll = available_polls[0]
+    # Берем СЛУЧАЙНЫЙ доступный опрос
+    current_poll = random.choice(available_polls)
     question = current_poll["question"]
     options = current_poll["options"]
 
     print(f"🤖 Публикуем опрос: {question}")
     
     # 1. Отправляем в ТГ
-    send_tg_poll(question, options)
+    tg_success = send_tg_poll(question, options)
     
     # 2. Отправляем в ВК
-    send_vk_poll_post(question, options)
+    vk_success = send_vk_poll_post(question, options)
     
-    # Отмечаем как использованный и сохраняем
-    current_poll["used"] = True
-    save_polls(polls)
+    # Отмечаем как использованный и сохраняем ТОЛЬКО если хотя бы одна отправка успешна
+    if tg_success or vk_success:
+        current_poll["used"] = True
+        save_polls(polls)
+    else:
+        print("⚠️ Ни одна платформа не приняла опрос, оставляем в очереди.")
 
 if __name__ == '__main__':
     main()
-    

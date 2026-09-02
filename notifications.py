@@ -40,12 +40,17 @@ class NotificationManager:
             pass
         return {}
 
-    def _save_seen(self):
+def _save_seen(self):
         try:
+            # Очистка записей старше 15 дней (15 * 24 * 60 * 60 = 1296000 секунд)
+            now = self._now_ts()
+            pruned_seen = {k: v for k, v in self.seen.items() if (now - v) < 1296000}
+            self.seen = pruned_seen
+            
             with open(self.history_file, "w", encoding="utf-8") as f:
                 json.dump({"seen_map": self.seen}, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Ошибка сохранения истории: {e}")
 
     def _game_id(self, game: dict) -> str:
         title = (game.get("title") or "").strip().lower()

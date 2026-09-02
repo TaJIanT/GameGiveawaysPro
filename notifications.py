@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# -*- coding: utf-8 -*-
+
 import json
 import os
 import threading
@@ -40,7 +42,7 @@ class NotificationManager:
             pass
         return {}
 
-def _save_seen(self):
+    def _save_seen(self):
         try:
             # Очистка записей старше 15 дней (15 * 24 * 60 * 60 = 1296000 секунд)
             now = self._now_ts()

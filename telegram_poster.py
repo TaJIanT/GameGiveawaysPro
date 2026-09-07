@@ -178,10 +178,14 @@ def process_and_send_game(game):
     vk_caption += f"{link}\n"
     vk_caption += f"───────────────\n\n"
     
-    vk_caption += f"✈️ Больше эксклюзивной халявы в нашем Telegram-канале:\n"
-    vk_caption += f"👉 {TG_CHANNEL_URL}\n\n"
-    vk_caption += f"⚡ Хочешь узнавать о раздачах прямо на рабочем столе ПК?\n"
-    vk_caption += f"💻 Скачивай нашу программу: {APP_LINK}\n\n"
+# Яркий и привлекающий внимание подвал для ВКонтакте
+    vk_caption += f"🌈 ✨ 🌈 ✨ 🌈 ✨ 🌈\n"
+    vk_caption += f"🔥 ВСТУПАЙ ➡️ https://vk.ru/gamegiveawayspro ⬅️ 🔥\n"
+    vk_caption += f"🎮 Твоя база лучшей халявы! Забирай топовые игры первым!\n\n"
+    
+    vk_caption += f"💎 Наш Telegram-канал: {TG_CHANNEL_URL}\n"
+    vk_caption += f"🚀 Наша программа на ПК: {APP_LINK}\n"
+    vk_caption += f"🌈 ✨ 🌈 ✨ 🌈 ✨ 🌈\n\n"
     
     vk_caption += final_tags
 

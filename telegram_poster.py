@@ -180,7 +180,7 @@ def process_and_send_game(game):
     
 # Яркий и привлекающий внимание подвал для ВКонтакте
     vk_caption += f"🌈 ✨ 🌈 ✨ 🌈 ✨ 🌈\n"
-    vk_caption += f"🔥 ВСТУПАЙ ➡️ https://vk.ru/gamegiveawayspro ⬅️ 🔥\n"
+    vk_caption += f"🔥 ВСТУПАЙ ➡️ https://vk.ru/gamegiveawaysprokanal ⬅️ 🔥\n"
     vk_caption += f"🎮 Твоя база лучшей халявы! Забирай топовые игры первым!\n\n"
     
     vk_caption += f"💎 Наш Telegram-канал: {TG_CHANNEL_URL}\n"

@@ -266,7 +266,7 @@ def main():
             if limit: random.shuffle(game_list)
             for game in (game_list[:limit] if limit else game_list):
                 process_and_send_game(game)
-                time.sleep(2)
+                time.sleep(15)
                 total_posted += 1
 
     if total_posted == 0:

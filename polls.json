@@ -218,7 +218,8 @@
       "NVIDIA (GTX серии и старше) 🟢",
       "AMD Radeon 🟥",
       "Встроенная графика / Офисный ноут 💻"
-    ]
+    ],
+    "used": true
   },
   {
     "question": "Играете ли вы в Гача-игры (Genshin Impact, Honkai и т.д.)? 💎",
